@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse
 from .. import prompts
 from ..errors import OLLAMA_DOWN_MSG, AppError
 from ..generators import CHARS_PER_TOKEN
+from ..ollama_client import RESET
 from ..schemas import ChatRequest
 from ..services import Services, get_services, resolve_model
 
@@ -36,6 +37,9 @@ async def chat_route(body: ChatRequest, request: Request, s: Services = Depends(
             async for piece in s.client.chat_stream(st.model, build_chat_messages(body, s.config.num_ctx), s.config.num_ctx):
                 if await request.is_disconnected():
                     return
+                if piece == RESET:
+                    yield b'{"reset": true}\n'
+                    continue
                 yield (json.dumps({"delta": piece}, ensure_ascii=False) + "\n").encode()
             yield b'{"done": true}\n'
         except AppError as e:

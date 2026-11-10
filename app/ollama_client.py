@@ -12,6 +12,8 @@ from .errors import OLLAMA_DOWN_MSG, AppError
 
 Message = dict[str, str]
 THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
+# Segnale emesso da chat_stream: il testo inviato finora era ragionamento interno, va scartato.
+RESET = "\x00reset"
 
 
 def strip_think(text: str) -> str:
@@ -37,6 +39,9 @@ class OllamaClient:
         self.base_url = base_url.rstrip("/")
         self._timeout = httpx.Timeout(timeout, connect=5.0)
         self._think_supported: dict[str, bool] = {}
+        # Modelli che ragionano sempre (es. le versioni "Thinking"): ignorano think=false e scrivono il
+        # ragionamento nel testo. Per loro si chiede think=true, così Ollama lo separa nel campo "thinking".
+        self._always_thinks: set[str] = set()
 
     def _client(self, timeout: httpx.Timeout | None = None) -> httpx.AsyncClient:
         return httpx.AsyncClient(base_url=self.base_url, timeout=timeout or self._timeout)
@@ -66,9 +71,15 @@ class OllamaClient:
             "options": {"temperature": extra.pop("temperature", 0.3), "num_ctx": num_ctx},
             **extra,
         }
-        if self._think_supported.get(model, True):
+        if model in self._always_thinks:
+            payload["think"] = True
+        elif self._think_supported.get(model, True):
             payload["think"] = False
         return payload
+
+    def _note_leaked_thinking(self, model: str, payload: dict[str, Any], content: str) -> None:
+        if payload.get("think") is False and "</think>" in content and "<think>" not in content:
+            self._always_thinks.add(model)
 
     async def _post_chat(self, payload: dict[str, Any]) -> str:
         model = payload["model"]
@@ -87,7 +98,9 @@ class OllamaClient:
             raise AppError("ollama_error", f"Errore da Ollama: {e.response.text[:200]}", 502) from e
         except httpx.HTTPError as e:
             raise AppError("ollama_unavailable", OLLAMA_DOWN_MSG, 503) from e
-        return strip_think(r.json().get("message", {}).get("content", ""))
+        content = r.json().get("message", {}).get("content", "")
+        self._note_leaked_thinking(model, payload, content)
+        return strip_think(content)
 
     async def chat_json(self, model: str, messages: list[Message], schema: dict[str, Any], num_ctx: int) -> str:
         return await self._post_chat(self._payload(model, messages, num_ctx, False, format=schema))
@@ -125,6 +138,11 @@ class OllamaClient:
                             piece = piece.split("</think>", 1)[1]
                         elif in_think:
                             piece = ""
+                        elif "</think>" in piece:
+                            # Ragionamento senza <think> iniziale: quanto inviato finora va scartato.
+                            self._note_leaked_thinking(model, payload, piece)
+                            yield RESET
+                            piece = piece.split("</think>", 1)[1].lstrip()
                         if piece:
                             yield piece
                         if data.get("done"):

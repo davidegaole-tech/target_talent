@@ -523,6 +523,11 @@ async function runChat(userText) {
         bubble.classList.remove("thinking"); bubble.innerHTML = md(answer);
         bubble.appendChild(stop); $(".tt-gstop", stop).onclick = () => controller?.abort();
         logEl.scrollTop = logEl.scrollHeight;
+      } else if (ev.reset) {
+        // Il modello aveva scritto il suo ragionamento interno: lo tolgo e aspetto la risposta vera.
+        answer = "";
+        bubble.classList.add("thinking"); bubble.textContent = "Sto pensando…";
+        bubble.appendChild(stop); $(".tt-gstop", stop).onclick = () => controller?.abort();
       } else if (ev.error) err = ev.error;
     });
   } catch (e) { err = e.name === "AbortError" ? null : { message: e.message, code: e.code }; }
