@@ -28,6 +28,9 @@ class Config:
     port: int = 8765
     db_path: Path = BASE_DIR / "data" / "quaderno.db"
     web_dir: Path = BASE_DIR / "web"
+    # Credenziali provvisorie, finché non ci sarà un database degli utenti
+    login_user: str = "admin"
+    login_password: str = "password"
 
     @property
     def documents_dir(self) -> Path:
@@ -45,4 +48,6 @@ def load_config() -> Config:
         num_ctx=int(os.environ.get("QUADERNO_NUM_CTX", "8192")),
         port=int(os.environ.get("QUADERNO_PORT", "8765")),
         db_path=db,
+        login_user=os.environ.get("TALENT_USER", "admin"),
+        login_password=os.environ.get("TALENT_PASSWORD", "password"),
     )

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Avvio di Talent Passport su macOS/Linux.
+# Avvio di Talent Radar su macOS/Linux.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -54,7 +54,7 @@ fi
 
 # 5. Avvio e browser
 URL="http://localhost:$QUADERNO_PORT"
-echo "Avvio Talent Passport su $URL  (Ctrl+C per fermarlo)"
+echo "Avvio Talent Radar su $URL  (Ctrl+C per fermarlo)"
 ( sleep 2
   if command -v xdg-open >/dev/null 2>&1; then xdg-open "$URL" >/dev/null 2>&1
   elif command -v open >/dev/null 2>&1; then open "$URL"; fi ) &

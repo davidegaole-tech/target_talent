@@ -59,45 +59,44 @@ function tweenRadar(target,labels=EU){
 function sidebarHTML(){
   const nav=[
    {r:'passaporto',l:'Passaporto',i:'passport'},
-   {r:'diario',l:'Diario',i:'list'},
-   {r:'esposizione',l:'Esperienze e sport',i:'image'},
-   {r:'documenti',l:'Documenti',i:'file'},
-   {r:'voti',l:'Voti',i:'check'},
-   {r:'macroaree',l:'Panoramica',i:'trend'},
-   {r:'orientamento',l:'Orientamento',i:'compass'},
+   {r:'competenze',l:'Competenze',i:'trend'},
+   {r:'planner',l:'Planner',i:'calendar'},
+   {r:'esperienze',l:'Certificazioni ed esperienze',i:'file'},
+   {r:'appunti',l:'Appunti',i:'text'},
+   haVoti()?{r:'voti',l:'Voti',i:'check'}:null,
    {r:'portfolio',l:'CV e portfolio',i:'share'},
    {r:'social',l:'Amici',i:'users'}
-  ];
+  ].filter(Boolean);
+  const attiva=r=>state.route===r||(r==='esperienze'&&state.route==='nuova')||(r==='competenze'&&state.route==='orientamento')||(r==='portfolio'&&state.route==='cv');
   return `
   <div class="brand">
-    <div class="brand-mark">${icon('sparkles',20)}</div>
+    <img class="brand-logo" src="img/logo.png" alt="" width="36" height="36"/>
     <div class="brand-text">
-      <div class="brand-name">Talent Passport</div>
-      <div class="brand-sub">Radar engine</div>
+      <div class="brand-name">Talent Radar</div>
     </div>
   </div>
   <div class="nav-label">Navigazione</div>
   <nav class="nav">
-    ${nav.map(n=>'<a class="nav-item '+(state.route===n.r?'on':'')+'" href="#/'+n.r+'" data-route="'+n.r+'">'+icon(n.i,17)+'<span>'+n.l+'</span></a>').join('')}
+    ${nav.map(n=>'<a class="nav-item '+(attiva(n.r)?'on':'')+'" href="#/'+n.r+'" data-route="'+n.r+'">'+icon(n.i,17)+'<span>'+n.l+'</span></a>').join('')}
   </nav>
+  <button class="nav-item tour-btn" data-action="startTour">${icon('help',17)}<span>Come funziona</span></button>
   <div class="side-foot">Prototipo demo<br/>Dati di esempio · Sergio, AI locale<br/>GDPR: dati fittizi</div>`;
 }
 function topbarHTML(){
   const meta={
-   passaporto:['Il tuo Passaporto',nomeCompleto()+(classeScuola()?' · '+classeScuola():'')],
-   nuova:['Aggiungi una prova','Racconta qualcosa che hai fatto'],
-   diario:['Diario delle prove','Tutto quello che hai raccontato'],
-   documenti:['Documenti','Attestati, certificazioni e corsi'],
+   passaporto:['Passaporto','Il tuo profilo pubblico'],
+   competenze:['Competenze','Le 8 competenze chiave europee'],
+   planner:['Planner','Attività e obiettivi in programma'],
+   esperienze:['Certificazioni ed esperienze','Tutto quello che ti caratterizza'],
+   nuova:['Nuova esperienza','Racconta qualcosa che hai fatto'],
+   appunti:['Appunti','I tuoi appunti, con Sergio'],
+   voti:['Voti','Materie e andamento'],
+   portfolio:['CV e portfolio','Generati dalle tue esperienze'],
    cv:['Il tuo CV','Compilato dal tuo profilo'],
-   voti:['I tuoi voti','Inserisci voti e segui l\'andamento'],
-   macroaree:['Panoramica','Inclinazioni, collegamenti e voti'],
-   esposizione:['Esperienze e sport','Quello che fai fuori da scuola'],
    orientamento:['Orientamento','Direzioni coerenti con il tuo profilo'],
    social:['Amici','Cerca utenti, richieste e messaggi'],
-   recap:['Il tuo periodo','Uno sguardo indietro'],
-   portfolio:['CV e portfolio','Generati dalle tue prove'],
    privacy:['Cassaforte','Decidi tu cosa vede il tutor']
-  }[state.route]||['Talent Passport',''];
+  }[state.route]||['Talent Radar',''];
   return `
   <div>
     <div class="tb-title">${escHTML(meta[0])}</div>
@@ -121,6 +120,8 @@ function topbarHTML(){
         <div class="pm-sep"></div>
         <button class="pm-item" data-action="exportData">${icon('file',16)}<span>Esporta i miei dati</span></button>
         <button class="pm-item pm-danger" data-action="deleteData">${icon('alert',16)}<span>Elimina tutti i dati</span></button>
+        <div class="pm-sep"></div>
+        <button class="pm-item" data-action="logout">${icon('arrow',16)}<span>Esci</span></button>
       </div>
     </div>
   </div>`;
@@ -139,6 +140,5 @@ function renderMascot(){
   };
   const list=Object.keys(tips).includes(state.mascotMood)?tips[state.mascotMood]:tips.felice;
   const tip=list[Math.floor(Math.random()*list.length)];
-  const mood=state.mascotMood==='curioso'?'🤔':'😊';
-  m.innerHTML='<div class="mascot-bubble">'+tip+'</div><div class="mascot-panda" title="Parla con Sergio" onclick="toggleTutor()">'+mood+'</div>';
+  m.innerHTML='<div class="mascot-bubble">'+tip+'</div><button class="mascot-panda" title="Parla con Sergio" aria-label="Parla con Sergio" onclick="toggleTutor()"><img src="img/sergio.png" alt="" width="64" height="64"/></button>';
 }

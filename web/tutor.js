@@ -99,6 +99,7 @@ function openTutor() {
 function closeTutor() { panel.classList.remove("open"); document.body.classList.remove("tt-open"); }
 window.toggleTutor = () => panel.classList.contains("open") ? closeTutor() : openTutor();
 window.openTutor = openTutor;
+window.closeTutorPanel = closeTutor;
 $("#ttClose").onclick = closeTutor;
 
 function setTab(t) {
@@ -634,6 +635,17 @@ window.askSergio = (question, context = "") => {
   if (busy) { busyNotice(); return; }
   addMsg("user", question);
   runChat(question, context ? `${context}\n\nDomanda: ${question}` : question);
+};
+
+/* Genera una scheda da un testo che arriva da un'altra pagina (es. Appunti) */
+window.sergioGenerate = (kind, text, name) => {
+  openTutor(); setTab("chat");
+  if (busy) { busyNotice(); return; }
+  material = { text, name, topic: "" };
+  const kinds = kind === "all" ? ["summary", "quiz", "flashcards"] : [kind];
+  const what = { summary: "Riassunto", quiz: "Quiz", flashcards: "Flashcard", all: "Riassunto, quiz e flashcard" }[kind];
+  addMsg("user", `${what} su: 📎 ${name}`);
+  runGenerations(kinds, { ...material }, currentCounts());
 };
 
 /* Vecchi link alla pagina #/chat: aprono il pannello */

@@ -39,8 +39,22 @@ def _file_path(s: Services, doc: dict) -> Path:
 
 
 @router.get("")
-def list_documents(s: Services = Depends(get_services)) -> dict:
-    return {"documents": s.db.list_documents()}
+def list_documents(kind: str | None = None, s: Services = Depends(get_services)) -> dict:
+    docs = s.db.list_documents()
+    if kind:
+        docs = [d for d in docs if d["kind"] == kind]
+    return {"documents": docs}
+
+
+@router.get("/{doc_id}/text")
+def document_text(doc_id: str, s: Services = Depends(get_services)) -> dict:
+    """Testo estratto (per esempio per far creare a Sergio un riassunto degli appunti)."""
+    doc = s.db.get_document(doc_id, with_text=True)
+    if not doc:
+        raise _not_found()
+    if not doc.get("text"):
+        raise AppError("no_text", "Da questo file non si riesce a leggere il testo.", 400)
+    return {"name": doc["title"], "text": doc["text"], "words": len(doc["text"].split())}
 
 
 @router.post("")

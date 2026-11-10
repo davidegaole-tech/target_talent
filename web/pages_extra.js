@@ -1,69 +1,82 @@
 /* ---------- EXTRA PAGES (Talent Radar features) ---------- */
-function renderMacroaree(){
-  const groups=[
-    {nome:'Digitale e tecnologico',color:'#8b5cf6',comp:['digitale','stem'],desc:'Competenze tecniche, programmazione, strumenti digitali.'},
-    {nome:'Personale e sociale',color:'#f59e0b',comp:['personale','cittadinanza'],desc:'Essere, relazioni, cittadinanza attiva.'},
-    {nome:'Comunicazione e cultura',color:'#ec4899',comp:['alfabetica','multilingue','cultura'],desc:'Lingue, testi, espressione creativa.'},
-    {nome:'Iniziativa e progetto',color:'#14b8a6',comp:['imprenditoriale'],desc:'Organizzazione, leadership, gestione.'}
-  ];
-  const groupOf=id=>groups.find(g=>g.comp.includes(id));
-  const avg=g=>Math.round(g.comp.reduce((a,id)=>a+scoreOf(id),0)/g.comp.length);
-  const top=[...groups].sort((a,b)=>avg(b)-avg(a));
-  // Competenze che compaiono insieme nella stessa prova: i collegamenti tra aree
+/* Proposte fisse per migliorare ogni competenza (in futuro le sceglierà Sergio in base al profilo) */
+const MIGLIORA={
+  alfabetica:{testo:'Leggi un libro che ti incuriosisce e scrivine una breve recensione, o proponi un articolo al giornalino della scuola.',link:'https://www.liberliber.it',nome:'Liber Liber · libri gratuiti in italiano'},
+  multilingue:{testo:'Allenati con contenuti brevi ogni giorno e cerca occasioni reali: uno scambio, un gemellaggio, un podcast in lingua.',link:'https://www.bbc.co.uk/learningenglish',nome:'BBC Learning English'},
+  stem:{testo:'Video e esercizi gratuiti di matematica e scienze, con il tuo ritmo.',link:'https://it.khanacademy.org',nome:'Khan Academy in italiano'},
+  digitale:{testo:'Corsi gratuiti di programmazione e pensiero computazionale per studenti.',link:'https://programmailfuturo.it',nome:'Programma il Futuro'},
+  personale:{testo:'Prova un\'attività di gruppo nuova (sport di squadra, coro, teatro) e annota cosa impari su di te. Puoi chiedere a Sergio un piano per organizzare meglio lo studio.',link:'',nome:''},
+  cittadinanza:{testo:'Il volontariato è il modo più diretto: i Centri di Servizio per il Volontariato ti indicano le associazioni vicino a te.',link:'https://www.csvnet.it',nome:'CSVnet · volontariato in Italia'},
+  imprenditoriale:{testo:'Partecipa a un progetto in cui si crea una mini-impresa con la classe, oppure organizza un evento o una raccolta fondi.',link:'https://www.jaitalia.org',nome:'Junior Achievement Italia'},
+  cultura:{testo:'Visita un museo o una mostra (la prima domenica del mese molti sono gratuiti) e racconta cosa ti ha colpito.',link:'https://cultura.gov.it/domenicalmuseo',nome:'Domenica al museo'}
+};
+function renderMigliora(id){
+  const c=EU.find(x=>x.id===id), m=MIGLIORA[id]; if(!c||!m) return '';
+  return `
+    <button class="modal-close" data-action="closeModal">✕</button>
+    <div style="font-size:11px;font-weight:700;color:${c.color};text-transform:uppercase;letter-spacing:.08em">Migliora</div>
+    <div style="font-weight:700;font-size:17px;margin:4px 0 10px">${c.nome}</div>
+    <p style="font-size:13.5px;line-height:1.6;color:var(--text)">${m.testo}</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
+      ${m.link?`<a class="btn primary sm" href="${m.link}" target="_blank" rel="noopener noreferrer">${m.nome} ↗</a>`:''}
+      <button class="btn soft sm" data-action="askSergio" data-q="Vorrei migliorare la competenza «${c.nome}». Guardando il mio profilo, cosa mi consigli di fare in concreto nelle prossime settimane?">${icon('chat',14)} Chiedi a Sergio</button>
+      <button class="btn sm" data-action="planFromMigliora" data-val="${id}">Aggiungi al Planner</button>
+    </div>
+    <p style="font-size:11px;color:var(--label);margin-top:14px">Il link apre un sito esterno.</p>`;
+}
+function renderCompetenze(){
+  const vals=EU.map(c=>scoreOf(c.id));
+  const groups=[['digitale','stem'],['personale','cittadinanza'],['alfabetica','multilingue','cultura'],['imprenditoriale']];
+  const groupOf=id=>groups.findIndex(g=>g.includes(id));
   const pairs={};
   state.evidences.forEach(e=>{
     const c=[...new Set(e.comp)].sort();
-    for(let i=0;i<c.length;i++) for(let j=i+1;j<c.length;j++){
-      const k=c[i]+'|'+c[j]; (pairs[k]=pairs[k]||[]).push(e.titolo);
-    }
+    for(let i=0;i<c.length;i++) for(let j=i+1;j<c.length;j++){ const k=c[i]+'|'+c[j]; (pairs[k]=pairs[k]||[]).push(e.titolo); }
   });
-  const links=Object.entries(pairs).sort((a,b)=>b[1].length-a[1].length).slice(0,5);
-  const bridge=links.find(([k])=>{const [x,y]=k.split('|');return groupOf(x)!==groupOf(y);});
+  const links=Object.entries(pairs).sort((a,b)=>b[1].length-a[1].length).slice(0,4);
   const short=id=>EU.find(x=>x.id===id).short;
-  const voti=state.materie.map(m=>({m,media:mediaVoti(m.voti),comp:materiaToComp(m.nome)})).filter(v=>v.media!=null);
+  const voti=haVoti()?state.materie.map(m=>({m,media:mediaVoti(m.voti),comp:materiaToComp(m.nome)})).filter(v=>v.media!=null):[];
   return `
   <div class="hero">
     <div>
-      <h1>Panoramica</h1>
-      <p>Per chi vuole approfondire: le competenze raggruppate in macro-aree, come si collegano tra loro e cosa raccontano anche i tuoi voti.</p>
+      <h1>Le tue competenze chiave</h1>
+      <p>Le 8 competenze europee, calcolate da esperienze e certificazioni. Dove sei sotto il 60% trovi un'idea per migliorare.</p>
     </div>
     <div class="hero-side">
-      <button class="btn soft" data-action="askSergio" data-q="Guardando le mie prove e i miei voti, quali inclinazioni vedi in me? Come si collegano tra loro le aree in cui vado meglio?">${icon('chat',14)} Chiedi a Sergio una lettura</button>
+      <a class="btn soft" href="#/orientamento">${icon('compass',14)} Orientamento</a>
     </div>
   </div>
-  <div class="card" style="margin-bottom:16px">
-    <div class="section-title">Le tue inclinazioni</div>
-    <div class="section-sub">Una visione d'insieme</div>
-    <p style="font-size:13px;line-height:1.6;color:var(--text)">Le tue prove parlano soprattutto di <strong style="color:${top[0].color}">${top[0].nome.toLowerCase()}</strong>, seguito da <strong style="color:${top[1].color}">${top[1].nome.toLowerCase()}</strong>.
-    ${bridge?`Le aree non sono separate: in una stessa esperienza ne usi più di una, come <strong>${short(bridge[0].split('|')[0])}</strong> e <strong>${short(bridge[0].split('|')[1])}</strong> in «${bridge[1][0]}».`:''}</p>
-  </div>
   <div class="grid g2">
-    ${groups.map(g=>`
-      <div class="card">
-        <div class="section-title" style="color:${g.color}">${g.nome}</div>
-        <div class="section-sub">${g.desc}</div>
-        ${g.comp.map(id=>{const c=EU.find(x=>x.id===id);const v=scoreOf(id);return `
-          <div class="bar-row">
-            <div class="bar-name" style="color:${c.color}">${c.nome}</div>
-            <div class="bar-track"><div class="bar-fill" style="width:${v}%;background:${c.color}"></div></div>
-            <div class="bar-val">${v}</div>
-          </div>`;}).join('')}
-      </div>`).join('')}
+    <div class="card">
+      <div class="section-title">Il tuo radar</div>
+      <div class="section-sub">Le 8 competenze a colpo d'occhio</div>
+      <div id="radarWrap">${radarSVG(vals)}</div>
+    </div>
+    <div class="card">
+      <div class="section-title">Livello per competenza</div>
+      <div class="section-sub">Cresce con ogni esperienza collegata</div>
+      ${EU.map(c=>{const v=scoreOf(c.id);return `
+        <div class="comp-row">
+          <div class="comp-name" style="color:${c.color}">${c.nome}</div>
+          <div class="comp-bar"><div class="bar-track"><div class="bar-fill" style="width:${v}%;background:${c.color}"></div></div><span class="bar-val">${v}%</span></div>
+          ${v<60?`<button class="btn soft sm comp-up" data-action="migliora" data-val="${c.id}">Migliora</button>`:'<span class="comp-up"></span>'}
+        </div>`;}).join('')}
+    </div>
   </div>
   <div class="grid g2" style="margin-top:16px">
     <div class="card">
       <div class="section-title">Come si collegano</div>
-      <div class="section-sub">Competenze che compaiono insieme nelle stesse prove</div>
-      ${links.length?links.map(([k,titles])=>{const [x,y]=k.split('|');const gx=groupOf(x),gy=groupOf(y);return `
+      <div class="section-sub">Competenze che usi insieme nelle stesse esperienze</div>
+      ${links.length?links.map(([k,titles])=>{const [x,y]=k.split('|');return `
         <div class="link-row">
           <div><span class="chip" style="background:${COL[x]}1f;color:${COL[x]}">${short(x)}</span> + <span class="chip" style="background:${COL[y]}1f;color:${COL[y]}">${short(y)}</span>
-            ${gx!==gy?'<span class="link-bridge">ponte tra due aree</span>':''}</div>
-          <div class="link-ev">${titles.length} ${titles.length===1?'prova':'prove'}: ${titles.slice(0,2).join(', ')}${titles.length>2?'…':''}</div>
-        </div>`;}).join(''):'<p class="section-sub">Quando una prova tocca più competenze, il collegamento comparirà qui.</p>'}
+            ${groupOf(x)!==groupOf(y)?'<span class="link-bridge">ponte tra due aree</span>':''}</div>
+          <div class="link-ev">${titles.length} ${titles.length===1?'esperienza':'esperienze'}: ${titles.slice(0,2).join(', ')}${titles.length>2?'…':''}</div>
+        </div>`;}).join(''):'<p class="section-sub">Quando un\'esperienza tocca più competenze, il collegamento comparirà qui.</p>'}
     </div>
-    <div class="card">
+    ${haVoti()?`<div class="card">
       <div class="section-title">Cosa dicono i tuoi voti</div>
-      <div class="section-sub">Dalla sezione <a href="#/voti" style="color:var(--accent)">Voti</a>, letti insieme alle prove</div>
+      <div class="section-sub">Ogni materia accanto alla sua competenza</div>
       ${voti.length?voti.map(v=>{const c=v.comp&&EU.find(x=>x.id===v.comp);return `
         <div class="bar-row">
           <div class="bar-name" style="color:${v.m.color}">${escHTML(v.m.nome)}</div>
@@ -71,8 +84,8 @@ function renderMacroaree(){
           <div class="bar-val">${v.media}</div>
           <div class="bar-count">${c?c.short:''}</div>
         </div>`;}).join('')+`<p style="font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5">${votiLettura(voti)}</p>`
-      :'<p class="section-sub">Aggiungi qualche voto nella sezione Voti per vederli qui accanto alle prove.</p>'}
-    </div>
+      :'<p class="section-sub">Aggiungi qualche voto nella sezione <a href="#/voti" style="color:var(--accent)">Voti</a> per vederli qui.</p>'}
+    </div>`:''}
   </div>`;
 }
 /* Collega una materia alla competenza europea più vicina (per leggere voti e prove insieme). */
@@ -96,26 +109,6 @@ function votiLettura(voti){
   return forte
     ? `${escHTML(best.m.nome)} va bene e ${c.short} emerge anche dalle tue prove: è un'inclinazione che si vede sia a scuola sia fuori.`
     : `${escHTML(best.m.nome)} va bene, ma nelle prove ${c.short} compare ancora poco: forse fai cose in quest'area che non hai ancora raccontato.`;
-}
-function renderEsposizione(){
-  const list=state.evidences.filter(e=>e.ambito==='extra');
-  return `
-  <div class="hero">
-    <div>
-      <h1>Esperienze e sport</h1>
-      <p>La vetrina di quello che fai <strong>fuori da scuola</strong>: hobby, sport, volontariato, passioni. Il diario raccoglie tutto; qui trovi solo queste esperienze.</p>
-    </div>
-    <div class="hero-side">
-      <button class="btn primary sm" data-action="navigateNuova" data-ambito="extra">+ Aggiungi esperienza</button>
-    </div>
-  </div>
-  <div class="grid g3">
-    ${list.length?list.map(e=>renderEvidenceCard(e)).join(''):`<div class="card" style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px;line-height:1.6">Qui compariranno le esperienze fuori da scuola.<br/>Uno sport, uno strumento, il volontariato, un progetto tuo: tutto conta.</div>`}
-  </div>
-  <div class="card" style="margin-top:16px">
-    <div class="section-title">Perché raccontarle</div>
-    <p style="font-size:13px;color:var(--text);line-height:1.6;margin-top:6px">Anche quello che fai per passione mostra chi sei: la costanza negli allenamenti, il lavoro di squadra, la cura per gli altri. Quando aggiungi una prova, scegli <strong>Fuori da scuola</strong> e la troverai qui.</p>
-  </div>`;
 }
 function renderCv(){
   if(!DOCS.loaded) loadDocs();
@@ -159,36 +152,7 @@ function renderCv(){
     ${sezione('Competenze digitali',`<p>${val(p.digitali)}</p>`)}
     ${sezione('Competenze trasversali',`<p>Dalle esperienze raccolte emergono soprattutto: ${topComp(3).map(c=>EU.find(x=>x.id===c.id).nome.toLowerCase()).join(', ')}.</p>`)}
     ${sezione('Interessi',`<p>${val(p.interessi)}</p>`)}
-    <div class="muted" style="margin-top:12px">CV generato con Talent Passport</div>
-  </div>`;
-}
-function renderRecap(){
-  return `
-  <div class="hero">
-    <div>
-      <h1>Il tuo periodo</h1>
-      <p>Uno sguardo indietro, senza classifiche.</p>
-    </div>
-  </div>
-  <div class="grid g2">
-    <div class="card">
-      <div class="section-title">Questo mese</div>
-      <div class="section-sub">Quello che hai raccontato</div>
-      <ul style="margin:8px 0 0;padding-left:18px;font-size:12.5px;color:var(--text2);line-height:1.6">
-        ${state.evidences.slice(0,5).map(e=>'<li>'+e.titolo+'</li>').join('')}
-      </ul>
-    </div>
-    <div class="card">
-      <div class="section-title">Il trimestre</div>
-      <div class="section-sub">Come si sta muovendo il tuo profilo</div>
-      <p style="font-size:13px;color:var(--text);line-height:1.55">Nel trimestre hai raccontato spesso progetti tecnici e digitali. Il tuo modo di "essere" emerge meno: se ti va, una proposta in Orientamento può darti qualche idea.</p>
-    </div>
-  </div>
-  <div class="card" style="margin-top:16px">
-    <div class="section-title">Uno spunto per oggi</div>
-    <div class="section-sub">Da Sergio</div>
-    <p style="font-size:13px;color:var(--text)">${state.dailyTip}</p>
-    <button class="btn soft sm" style="margin-top:10px" data-action="mission" data-val="Un'esperienza sportiva o un hobby" data-ambito="extra">Mi interessa</button>
+    <div class="muted" style="margin-top:12px">CV generato con Talent Radar</div>
   </div>`;
 }
 function renderSocial(){
@@ -340,7 +304,15 @@ function renderVoti(){
 function renderSettings(){
   return `
   <div style="font-weight:700;font-size:16px;margin-bottom:4px">Impostazioni</div>
-  <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px">Personalizza l'interfaccia del Passaporto.</div>
+  <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px">Le modifiche si applicano subito.</div>
+  <div class="form-row">
+    <label>Sei…</label>
+    <div class="seg">
+      <button class="segbtn ${state.ruolo==='studente'?'on':''}" data-action="setRuolo" data-val="studente">Studente</button>
+      <button class="segbtn ${state.ruolo==='lavoratore'?'on':''}" data-action="setRuolo" data-val="lavoratore">Lavoratore</button>
+      <button class="segbtn ${state.ruolo==='studente-lavoratore'?'on':''}" data-action="setRuolo" data-val="studente-lavoratore">Studente lavoratore</button>
+    </div>
+  </div>
   <div class="form-row">
     <label>Tema</label>
     <div class="seg">
@@ -363,15 +335,14 @@ function renderSettings(){
     </div>
   </div>
   <div class="form-row">
-    <label>Umore mascotte</label>
+    <label>Umore di Sergio</label>
     <div class="seg">
       <button class="segbtn ${state.mascotMood==='felice'?'on':''}" data-action="setMood" data-val="felice">Felice</button>
       <button class="segbtn ${state.mascotMood==='curioso'?'on':''}" data-action="setMood" data-val="curioso">Curioso</button>
     </div>
   </div>
   <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
-    <button class="btn soft sm" data-action="closeModal">Chiudi</button>
-    <button class="btn primary sm" data-action="closeModal">Salva</button>
+    <button class="btn primary sm" data-action="closeModal">Fatto</button>
   </div>
   `;
 }

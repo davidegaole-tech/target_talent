@@ -1,4 +1,4 @@
-# Talent Passport
+# Talent Radar
 
 Prototipo di **passaporto dei talenti** per studenti: raccogli prove (foto, link, testi), le colleghi alle 8 competenze chiave europee e alle dimensioni *Essere · Fare · Lavorare*, e segui il tuo profilo nel radar, nel diario, nell'orientamento e nell'e-portfolio.
 
@@ -37,16 +37,23 @@ Clicca la mascotte in basso a destra per aprire il pannello (si chiude con × o 
 - **Le mie schede**: tutto quello che Sergio crea viene salvato qui. Apri una scheda per leggere il riassunto, fare il quiz (il miglior punteggio viene ricordato) o ripassare le flashcard.
 - In alto nel pannello vedi se Ollama è attivo e puoi **cambiare modello**.
 
+## Accesso
+
+All'apertura c'è la pagina di login. **Per ora le credenziali sono fisse: `admin` / `password`** (si cambiano con `TALENT_USER` e `TALENT_PASSWORD` in `.env`). Dopo il primo accesso scegli se sei **studente, lavoratore o studente lavoratore**: per i lavoratori la sezione Voti non compare. Il ruolo si cambia nelle impostazioni; per uscire usa il menu del profilo → **Esci**.
+
+> È un accesso provvisorio, in attesa del database degli utenti: le API restano aperte e i dati del passaporto stanno nel browser.
+
 ## Le sezioni
 
-- **Passaporto**: il tuo spazio, senza percentuali né obiettivi da raggiungere.
-- **Diario**: tutto quello che hai raccontato, a scuola e fuori, compresi i documenti aggiunti. Su ogni prova puoi premere **Correggi le competenze** e scegliere tu.
-- **Esperienze e sport**: solo quello che fai fuori da scuola (hobby, sport, volontariato). Quando aggiungi una prova scegli *A scuola* o *Fuori da scuola*.
-- **Documenti**: carichi attestati, certificazioni e corsi (PDF, DOCX, TXT, JPG, PNG, massimo 10 MB). Sergio li legge, dice quali competenze mostrano e suggerisce come andare avanti; poi puoi aggiungerli al diario.
-- **Voti**: i voti per materia, che Sergio usa anche quando gli chiedi un consiglio.
-- **Panoramica**: per chi vuole i numeri, cioè competenze per macro-area, come si collegano tra loro e cosa dicono i voti.
-- **Orientamento**: direzioni da esplorare con una spiegazione e il pulsante **Chiedi a Sergio**.
-- **CV e portfolio**: il CV si compila dal tuo profilo (menu in alto a destra → **Il mio profilo**), dalle esperienze e dai documenti.
+Per una visita guidata premi **Come funziona** in fondo al menu a sinistra.
+
+- **Passaporto**: il tuo profilo pubblico (nome, scuola, classe se vuoi, presentazione, titoli come "Asso dell'Informatica", competenze tecniche e socio-culturali, sport e hobby) e un recap del mese o del trimestre. Gli altri lo vedono, solo tu lo modifichi: **Vedi come gli altri** mostra l'anteprima.
+- **Competenze**: il radar delle 8 competenze europee e le barre in percentuale; sotto il 60% c'è **Migliora** con una proposta e un link (per ora fissi).
+- **Planner**: attività future e obiettivi con una data; Sergio li collega alle competenze appena li aggiungi.
+- **Certificazioni ed esperienze**: scrivi esperienze (a scuola o fuori) e carica certificati e attestati (PDF, DOCX, TXT, JPG, PNG, massimo 10 MB). Sergio li analizza; con ★ scegli cosa mettere in evidenza nel passaporto.
+- **Appunti**: carica o incolla appunti e chiedi a Sergio riassunto, quiz o flashcard.
+- **Voti** (studenti): materie e voti con il grafico dell'andamento per ogni materia.
+- **CV e portfolio**, **Amici**: come prima. Dal pannello Competenze si arriva anche a **Orientamento**.
 
 ## Analizza con l'AI
 
@@ -107,7 +114,7 @@ python3 -m venv .venv
 ```
 
 Struttura:
-- `web/` — frontend senza build step. `index.html`, `app.js`, `data.js`, `ui.js`, `pages*.js`, `styles.css` sono Talent Passport; `documenti.js` è la sezione Documenti; `tutor.js` e `tutor.css` sono il pannello di Sergio, il tutor AI; `vendor/` contiene `marked` e `DOMPurify` serviti in locale.
+- `web/` — frontend senza build step. `index.html`, `app.js`, `data.js`, `ui.js`, `pages*.js`, `styles.css` sono Talent Radar; `esperienze.js`, `planner.js`, `appunti.js` e `login.js` sono le sezioni omonime e l'accesso; `tour.js` è la guida "Come funziona"; `img/` contiene logo e mascotte; `tutor.js` e `tutor.css` sono il pannello di Sergio, il tutor AI; `vendor/` contiene `marked` e `DOMPurify` serviti in locale.
 - `app/` — backend FastAPI: client Ollama, generatori di riassunti/quiz/flashcard con validazione e chunking, analisi delle prove (`analyze.py`, `POST /api/analyze`), archivio documenti (`/api/documents`), SQLite, API sotto `/api`.
 - `tests/` — test `pytest` con un client Ollama finto.
 - `scripts/` — avvio per macOS/Linux e Windows.

@@ -1,4 +1,4 @@
-"""Analisi di una prova di Talent Passport: collega il testo alle competenze chiave europee."""
+"""Analisi di una prova di Talent Radar: collega il testo alle competenze chiave europee."""
 from __future__ import annotations
 
 from typing import Any
@@ -93,6 +93,8 @@ def build_analysis_messages(title: str, description: str, kind: str | None,
     comp_list = "\n".join(f"- {cid}: {desc}" for cid, desc in COMPETENCES.items())
     if kind in DOCUMENT_KINDS:
         kind_label = f"documento: {DOCUMENT_KINDS[kind]}"
+    elif kind == "piano":
+        kind_label = "attività in programma, non ancora svolta (un impegno o un obiettivo futuro)"
     else:
         kind_label = kind if kind in ANALYSIS_TYPES else "testo"
     user = prompts.ANALYZE.format(

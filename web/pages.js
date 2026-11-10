@@ -1,62 +1,105 @@
 /* ---------- PAGES ---------- */
+/* Titoli assegnati quando una competenza è forte (punteggio ≥ 70) */
+const TITOLI={
+  digitale:{t:'Asso dell\'Informatica',e:'💻'}, stem:{t:'Mente scientifica',e:'🔬'},
+  alfabetica:{t:'Penna brillante',e:'✍️'}, multilingue:{t:'Poliglotta',e:'🌍'},
+  personale:{t:'Spirito di squadra',e:'🤝'}, cittadinanza:{t:'Cittadino attivo',e:'🏛️'},
+  imprenditoriale:{t:'Leader nato',e:'🚀'}, cultura:{t:'Anima creativa',e:'🎨'}
+};
+const COMP_TECNICHE=['stem','digitale','multilingue','alfabetica'];
+const COMP_SOCIO=['personale','cittadinanza','imprenditoriale','cultura'];
+const RUOLI={studente:'Studente',lavoratore:'Lavoratore','studente-lavoratore':'Studente lavoratore'};
+function livello(v){ return v>=80?'spicca':v>=65?'solida':v>=50?'buona':'in crescita'; }
+function titoliOttenuti(){ return EU.filter(c=>scoreOf(c.id)>=70).sort((a,b)=>scoreOf(b.id)-scoreOf(a.id)).map(c=>({id:c.id,...TITOLI[c.id]})); }
+
+function recapAttivita(){
+  const giorni=state.recapPeriodo==='trimestre'?90:31;
+  const oggi=new Date(); const da=new Date(oggi.getTime()-giorni*864e5).toISOString().slice(0,10);
+  const nel=state.evidences.filter(e=>(e.data||'')>=da);
+  const scelte=nel.filter(e=>e.evidenza);
+  return {giorni, lista:(scelte.length?scelte:nel).slice(0,6), scelte:scelte.length>0, totale:nel.length};
+}
+
 function renderPassaporto(){
-  const vals=EU.map(c=>scoreOf(c.id));
-  const td=topDim(3);
-  const recent=state.evidences.slice(0,3);
-  const nome=state.profilo.nome||'';
+  if(!DOCS.loaded) loadDocs();
+  const p=state.profilo, owner=state.passView!=='public';
+  const certEv=(DOCS.items||[]).filter(d=>state.docEvidenza.includes(d.id));
+  const titoli=titoliOttenuti();
+  const chipComp=id=>{const c=EU.find(x=>x.id===id),v=scoreOf(id);return `<div class="pp-comp"><span class="pp-dot" style="background:${c.color}"></span><span class="pp-comp-n">${c.nome}</span><span class="pp-lv" style="color:${c.color}">${livello(v)}</span></div>`;};
+  const tags=v=>(v||'').split(/[,;\n]/).map(x=>x.trim()).filter(Boolean);
+  const sport=tags(p.sport), hobby=tags(p.interessi).filter(h=>!sport.some(x=>x.toLowerCase()===h.toLowerCase()));
+  const rc=recapAttivita();
+  const studio=[p.scuola, p.classe?'classe '+p.classe:''].filter(Boolean).join(' · ');
   return `
-  <div class="hero">
-    <div>
-      <h1>${nome?'Ciao '+escHTML(nome)+',':'Il tuo Passaporto'}</h1>
-      <p>Questo è il tuo spazio. Ogni cosa che racconti, a scuola o fuori, mostra <strong>come sei</strong>, <strong>cosa realizzi</strong> e <strong>come operi</strong>. Nessun voto, nessun obiettivo da raggiungere: carichi quello che senti tuo.</p>
-    </div>
-    <div class="hero-side">
-      <button class="btn primary" data-action="navigateNuova">+ Racconta qualcosa</button>
-      <button class="btn soft" data-action="askSergio" data-q="Ho voglia di raccontare qualcosa nel mio passaporto ma non so da dove partire. Mi aiuti con qualche idea?">Non sai cosa raccontare?</button>
-    </div>
-  </div>
-  <div class="grid g2">
-    <div class="card">
-      <div class="section-title">Il tuo modo di essere, fare, lavorare</div>
-      <div class="section-sub">Come si distribuiscono le cose che hai raccontato</div>
-      ${DIMS.map(d=>`
-        <div class="bar-row">
-          <div class="bar-name" style="color:${d.color}">${d.nome}</div>
-          <div class="bar-track"><div class="bar-fill" style="width:${dimScore(d.id)}%;background:${d.color}"></div></div>
-          <div class="bar-count">${dimCount(d.id)} ${dimCount(d.id)===1?'prova':'prove'}</div>
-        </div>`).join('')}
-      <div style="margin-top:14px;padding:12px 14px;background:var(--surface2);border-radius:12px;font-size:12.5px;line-height:1.6;color:var(--text2)">
-        Finora hai raccontato soprattutto il tuo modo di <strong>${td[0].nome.toLowerCase()}</strong>. Se ti va, prova a far emergere anche come sai <strong>${td[2].nome.toLowerCase()}</strong>: spesso c'è già, solo che non l'hai ancora scritto.
+  ${owner?'':`<div class="pp-preview">Stai vedendo il tuo passaporto come lo vedono gli altri. <button class="btn sm" data-action="passView" data-val="owner">Torna a modificare</button></div>`}
+  <div class="card pp-head">
+    <div class="pp-avatar">${escHTML(iniziali())}</div>
+    <div class="pp-id">
+      <h1>${escHTML(nomeCompleto())}</h1>
+      <div class="pp-meta">
+        ${state.ruolo?`<span class="chip">${RUOLI[state.ruolo]}</span>`:''}
+        ${studio?`<span>${icon('passport',14)} ${escHTML(studio)}</span>`:''}
+        ${p.citta?`<span>${icon('compass',14)} ${escHTML(p.citta)}</span>`:''}
       </div>
+      <p class="pp-bio">${p.presentazione?escHTML(p.presentazione):(owner?'<span class="cv-missing">Scrivi due righe su di te: è la prima cosa che vedono gli altri.</span>':'')}</p>
     </div>
-    <div class="card">
-      <div class="section-title">Le tue competenze chiave</div>
-      <div class="section-sub">Le 8 competenze europee che emergono dalle tue prove</div>
-      <div id="radarWrap">${radarSVG(vals)}</div>
-      <a href="#/macroaree" class="btn soft sm" style="margin-top:6px">Approfondisci nella panoramica ${icon('arrow',14)}</a>
-    </div>
+    ${owner?`<div class="pp-actions">
+      <button class="btn primary sm" data-action="editProfile">Modifica</button>
+      <button class="btn sm" data-action="passView" data-val="public">Vedi come gli altri</button>
+    </div>`:''}
   </div>
+
+  ${titoli.length?`<div class="card" style="margin-top:16px">
+    <div class="section-title">Titoli</div>
+    <div class="section-sub">Riconoscimenti che nascono dalle tue esperienze</div>
+    <div class="pp-titoli">${titoli.map(t=>`<div class="pp-titolo" style="--tc:${COL[t.id]}"><span class="pp-te">${t.e}</span><span>${t.t}</span></div>`).join('')}</div>
+  </div>`:''}
+
   <div class="grid g2" style="margin-top:16px">
     <div class="card">
-      <div class="section-title">Le tue ultime prove</div>
-      <div class="section-sub">Quello che hai raccontato di recente</div>
-      ${recent.map(e=>renderEvidenceCard(e)).join('')}
-      <a href="#/diario" class="btn soft sm" style="margin-top:6px">Apri il diario ${icon('arrow',14)}</a>
+      <div class="section-title">Competenze tecniche</div>
+      <div class="section-sub">Scienze, tecnologia, lingue e scrittura</div>
+      ${COMP_TECNICHE.map(chipComp).join('')}
     </div>
-    <div>
-      <div class="card" style="margin-bottom:16px">
-        <div class="section-title">Una proposta per te</div>
-        <div class="section-sub">Un'idea da esplorare, se ti incuriosisce</div>
-        <p style="font-size:13px;line-height:1.55;color:var(--text);margin-bottom:12px">Ti va di raccontare come vi siete organizzati nel gruppo del robot? Chi faceva cosa, un problema che avete risolto insieme. È un modo per far vedere anche <strong>come lavori</strong> con gli altri.</p>
-        <button class="btn primary sm" data-action="mission" data-val="Come ci siamo organizzati nel gruppo del robot" data-ambito="scuola">Mi interessa ${icon('arrow',14)}</button>
+    <div class="card">
+      <div class="section-title">Competenze socio-culturali</div>
+      <div class="section-sub">Relazioni, iniziativa, cittadinanza e cultura</div>
+      ${COMP_SOCIO.map(chipComp).join('')}
+    </div>
+  </div>
+
+  ${certEv.length?`<div class="card" style="margin-top:16px">
+    <div class="section-title">Certificazioni in evidenza</div>
+    <div class="section-sub">Scelte da ${owner?'te':escHTML(p.nome||'questa persona')}</div>
+    <div class="pp-recap">${certEv.map(d=>`<div class="pp-rc" style="cursor:default"><div class="pp-rc-t">🏅 ${escHTML(d.title)}</div><div class="pp-rc-d">${DOC_KINDS[d.kind]||'Documento'}${d.date?' · '+d.date.slice(0,4):''}</div></div>`).join('')}</div>
+  </div>`:''}
+
+  <div class="card" style="margin-top:16px">
+    <div class="section-title">Sport e hobby</div>
+    <div class="section-sub">Quello che fai per passione</div>
+    ${sport.length||hobby.length?`<div class="pp-tags">
+      ${sport.map(t=>`<span class="pp-tag sport">🏅 ${escHTML(t)}</span>`).join('')}
+      ${hobby.map(t=>`<span class="pp-tag">${escHTML(t)}</span>`).join('')}
+    </div>`:`<p class="section-sub">${owner?'Aggiungili con <strong>Modifica</strong>.':'Nessuno indicato.'}</p>`}
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <div>
+        <div class="section-title">Recap ${state.recapPeriodo==='trimestre'?'del trimestre':'del mese'}</div>
+        <div class="section-sub">${rc.scelte?'Le attività che hai messo in evidenza':'Le attività più recenti del periodo'}</div>
       </div>
-      <div class="card">
-        <div class="section-title">Una direzione da esplorare</div>
-        <div class="section-sub">Ispirata a quello che hai raccontato</div>
-        <p style="font-size:13px;line-height:1.55;color:var(--text);margin-bottom:12px">Le tue prove su sistemi e programmazione fanno pensare a un <strong>ITS Informatica e Robotica</strong>. È solo uno spunto: in Orientamento trovi altre strade e puoi chiedere a Sergio.</p>
-        <a href="#/orientamento" class="btn soft sm">Esplora le direzioni ${icon('arrow',14)}</a>
+      <div class="seg">
+        <button class="segbtn ${state.recapPeriodo!=='trimestre'?'on':''}" data-action="recapPeriodo" data-val="mese">Mese</button>
+        <button class="segbtn ${state.recapPeriodo==='trimestre'?'on':''}" data-action="recapPeriodo" data-val="trimestre">Trimestre</button>
       </div>
     </div>
+    ${rc.lista.length?`<div class="pp-recap">${rc.lista.map(e=>`
+      <div class="pp-rc" data-action="openEv" data-id="${e.id}">
+        <div class="pp-rc-t">${e.evidenza?'★ ':''}${e.titolo}</div>
+        <div class="pp-rc-d">${fmtDate(e.data)} · ${e.comp.map(id=>EU.find(c=>c.id===id)?.short).filter(Boolean).join(', ')}</div>
+      </div>`).join('')}</div>`:`<p class="section-sub" style="margin-top:8px">Nessuna attività in questo periodo.</p>`}
+    ${owner&&!rc.scelte&&rc.lista.length?`<p style="font-size:11.5px;color:var(--muted);margin-top:10px">Suggerimento: in <a href="#/esperienze" style="color:var(--accent)">Certificazioni ed esperienze</a> premi ★ sulle attività a cui tieni di più, e compariranno qui.</p>`:''}
   </div>`;
 }
 function renderEvidenceCard(e){
@@ -71,6 +114,7 @@ function renderEvidenceCard(e){
         <div class="evidence-date">${fmtDate(e.data)} · ${e.tipo}</div>
       </div>
       <span class="conf">${(e.ambito==='extra'?'fuori da scuola':e.ambito==='doc'?'documento':'a scuola')}</span>
+      <button class="star ${e.evidenza?'on':''}" data-action="toggleStar" data-id="${e.id}" title="${e.evidenza?'Togli dal passaporto':'Metti in evidenza nel passaporto'}" aria-pressed="${!!e.evidenza}">★</button>
     </div>
     <div class="evidence-desc">${e.descrizione}</div>
     <div class="evidence-foot">${dimchips}${chips}<span style="font-size:10.5px;color:var(--label);margin-left:auto">${e.corretta?'competenze scelte da te':'confidenza '+e.conf}</span></div>
@@ -83,7 +127,7 @@ function renderNuova(){
   return `
   <div class="hero">
     <div>
-      <h1>Aggiungi una prova</h1>
+      <h1>Nuova esperienza</h1>
       <p>30 secondi. Anche una cosa fatta fuori scuola: una foto, un link, due righe. L'AI la collega al tuo modo di essere, fare e lavorare.</p>
     </div>
   </div>
@@ -120,7 +164,7 @@ function renderNuova(){
         <button class="btn primary" data-action="analizza">Analizza con l'AI ${icon('sparkles',14)}</button>
         <button class="btn" data-action="resetForm">Pulisci</button>
       </div>
-      <p style="font-size:12px;color:var(--muted);margin-top:14px;line-height:1.5">Hai un attestato, una certificazione o un corso? Caricalo in <a href="#/documenti" style="color:var(--accent);font-weight:600">Documenti</a>: Sergio lo legge e ti suggerisce come valorizzarlo.</p>
+      <p style="font-size:12px;color:var(--muted);margin-top:14px;line-height:1.5">Hai un attestato, una certificazione o un corso? Caricalo in <a href="#/esperienze" style="color:var(--accent);font-weight:600">Certificazioni ed esperienze</a>: Sergio lo legge e ti suggerisce come valorizzarlo.</p>
     </div>
     <div>
       <div class="card" id="analisiCard">
@@ -163,30 +207,8 @@ function renderAnalisi(res){
     <div class="ai-source">${res.fonte==='modello'?'Analisi del modello locale · '+res.modello:res.fonte==='simulata'?'Analisi simulata: '+res.motivo+'. Avvia Sergio per usare il modello vero.':''}</div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <button class="btn primary" data-action="conferma">Aggiungi al Passaporto ${icon('check',14)}</button>
+    <button class="btn primary" data-action="conferma">Salva l'esperienza ${icon('check',14)}</button>
     <button class="btn" data-action="correggi">Correggi</button>
-  </div>`;
-}
-function renderDiario(){
-  const filters=EU.map(c=>'<button class="chip filter '+(state.diarioFilter===c.id?'on':'')+'" data-action="dfilter" data-val="'+c.id+'">'+c.short+'</button>').join('');
-  const list=state.diarioFilter?state.evidences.filter(e=>e.comp.includes(state.diarioFilter)):state.evidences;
-  return `
-  <div class="hero">
-    <div>
-      <h1>Diario delle prove</h1>
-      <p>Tutto quello che hai raccontato, a scuola e fuori, compresi i documenti che hai aggiunto. Filtra per competenza se vuoi ritrovare qualcosa.</p>
-    </div>
-    <div class="hero-side">
-      <button class="btn primary sm" data-action="navigateNuova">+ Aggiungi prova</button>
-      <a class="btn sm" href="#/documenti">${icon('file',14)} Carica un documento</a>
-    </div>
-  </div>
-  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
-    <button class="chip filter ${!state.diarioFilter?'on':''}" data-action="dfilter" data-val="">Tutte</button>
-    ${filters}
-  </div>
-  <div class="grid g3">
-    ${list.length?list.map(e=>renderEvidenceCard(e)).join(''):'<div class="card" style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px">Ancora nessuna prova per questa competenza. <a href="#/nuova" style="color:var(--accent);font-weight:600">Racconta qualcosa</a>.</div>'}
   </div>`;
 }
 function renderOrientamento(){
@@ -323,7 +345,7 @@ function renderPortfolio(){
       </ul>
     </section>
     <hr/>
-    <div class="muted">Bozza generata automaticamente il 10 nov 2026 · da validare con il tutor · Talent Passport</div>
+    <div class="muted">Bozza generata automaticamente il 10 nov 2026 · da validare con il tutor · Talent Radar</div>
   </div>`;
 }
 function renderPrivacy(){

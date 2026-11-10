@@ -43,6 +43,8 @@ const ICONS = {
  text:'<path d="M4 6h16M4 12h12M4 18h8"/>',
  mic:'<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3"/>',
  trend:'<path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/>',
+ calendar:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/>',
+ help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.3-2.5 3.9"/><path d="M12 17h.01"/>',
  share:'<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>'
 };
 function icon(n,s=18){return '<svg class="ic" width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+(ICONS[n]||'')+'</svg>';}
@@ -52,10 +54,10 @@ const state = {
   route:'passaporto',
   prove:{alfabetica:4,multilingue:2,stem:6,digitale:7,personale:5,cittadinanza:2,imprenditoriale:3,cultura:2},
   evidences:[
-   {id:'e1',ambito:'scuola',titolo:'Robot per la gara regionale',tipo:'foto',data:'2026-11-06',descrizione:'Con il gruppo di laboratorio ho montato e programmato un robot con Arduino. Io ho gestito i sensori e i test.',comp:['stem','digitale'],dims:['fare','lavorare'],conf:'alta',perche:'Progettazione tecnica, programmazione e lavoro di squadra su un obiettivo concreto.'},
+   {id:'e1',ambito:'scuola',evidenza:true,titolo:'Robot per la gara regionale',tipo:'foto',data:'2026-11-06',descrizione:'Con il gruppo di laboratorio ho montato e programmato un robot con Arduino. Io ho gestito i sensori e i test.',comp:['stem','digitale'],dims:['fare','lavorare'],conf:'alta',perche:'Progettazione tecnica, programmazione e lavoro di squadra su un obiettivo concreto.'},
    {id:'e2',ambito:'extra',titolo:'Volontaria alla biblioteca di quartiere',tipo:'testo',data:'2026-11-02',descrizione:'Due pomeriggi al mese aiuto a catalogare i libri e a leggere ai bambini delle elementari.',comp:['cittadinanza','personale'],dims:['essere'],conf:'alta',perche:'Impegno civico continuativo e responsabilità verso gli altri.'},
    {id:'e3',ambito:'scuola',titolo:'Podcast in inglese con studenti spagnoli',tipo:'link',data:'2026-10-27',descrizione:'Episodio di 12 minuti registrato con una classe di Valencia sul tema del clima. Ho scritto la scaletta e montato l\'audio.',comp:['multilingue','digitale'],dims:['fare','lavorare'],conf:'alta',perche:'Uso reale di una lingua straniera e produzione audio digitale.'},
-   {id:'e4',ambito:'extra',titolo:'Mercatino solidale di Natale',tipo:'foto',data:'2026-10-20',descrizione:'Ho coordinato un gruppo di 6 persone: budget, contatti con i negozi, turni e comunicazione sui social.',comp:['imprenditoriale','personale'],dims:['lavorare','essere'],conf:'alta',perche:'Iniziativa, gestione di un budget e coordinamento di un gruppo.'},
+   {id:'e4',ambito:'extra',evidenza:true,titolo:'Mercatino solidale di Natale',tipo:'foto',data:'2026-10-20',descrizione:'Ho coordinato un gruppo di 6 persone: budget, contatti con i negozi, turni e comunicazione sui social.',comp:['imprenditoriale','personale'],dims:['lavorare','essere'],conf:'alta',perche:'Iniziativa, gestione di un budget e coordinamento di un gruppo.'},
    {id:'e5',ambito:'scuola',titolo:'Recensione di "La coscienza di Zeno"',tipo:'testo',data:'2026-10-14',descrizione:'Recensione di 900 parole pubblicata sul giornalino scolastico.',comp:['alfabetica'],dims:['fare'],conf:'media',perche:'Produzione di un testo argomentativo destinato a un pubblico reale.'},
    {id:'e6',ambito:'scuola',titolo:'Locandina per la mostra fotografica',tipo:'foto',data:'2026-10-08',descrizione:'Ho progettato la locandina della mostra della classe usando Photoshop e i colori della scuola.',comp:['cultura','digitale'],dims:['essere','lavorare'],conf:'alta',perche:'Alfabetizzazione visiva e uso consapevole di strumenti di design.'},
    {id:'e7',ambito:'extra',titolo:'Capitana della squadra di pallavolo',tipo:'testo',data:'2026-09-30',descrizione:'Gestisco gli allenamenti quando l\'allenatore è assente e tengo i rapporti con le altre squadre.',comp:['personale','cittadinanza'],dims:['essere'],conf:'media',perche:'Leadership, costanza e gestione delle relazioni.'}
@@ -66,8 +68,17 @@ const state = {
    nome:'Giulia', cognome:'Ferrari', nascita:'2009-03-14', citta:'Bologna', email:'', telefono:'',
    scuola:'Liceo Scientifico opzione Scienze Applicate', classe:'4B', anno:'2026/27',
    presentazione:'', lingue:'Italiano (madrelingua); Inglese (B2); Spagnolo (A2)',
-   digitali:'Arduino, Python di base, Photoshop, Audacity', interessi:'Robotica, pallavolo, fotografia'
+   digitali:'Arduino, Python di base, Photoshop, Audacity', interessi:'Robotica, fotografia, podcast',
+   sport:'Pallavolo'
   },
+  ruolo:null,
+  passView:'owner',
+  recapPeriodo:'mese',
+  docEvidenza:[],
+  planner:[
+   {id:'p1',tipo:'attivita',titolo:'Corso di primo soccorso con la Croce Rossa',note:'Tre incontri il sabato mattina',data:'2026-12-05',comp:['cittadinanza','personale'],perche:'impegno verso gli altri e responsabilità',fonte:'esempio',fatto:false},
+   {id:'p2',tipo:'obiettivo',titolo:'Certificazione Cambridge C1',note:'Preparare reading e writing',data:'2027-05-30',comp:['multilingue'],perche:'uso di una lingua straniera a livello avanzato',fonte:'esempio',fatto:false}
+  ],
   privacy:{tutor:true,orientatore:false,ai:false,export:true},
   diarioFilter:null,
   radarValues:null,
@@ -76,7 +87,7 @@ const state = {
   streak:5,
   lastActive:'2026-11-10',
   dailyTip:'Oggi prova a documentare un\'esperienza sportiva o un hobby: diventa una prova nel tuo passaporto.',
-  mascotMood:'happy',
+  mascotMood:'felice',
   theme:'light',
   reduceMotion:false,
   textSize:'normale',

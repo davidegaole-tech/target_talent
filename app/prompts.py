@@ -50,7 +50,7 @@ RETRY = (
 )
 
 TUTOR_SYSTEM = (
-    "Sei Sergio, il tutor di studio di Talent Passport: paziente e amichevole. Rispondi in italiano (o nella lingua dell'utente), in modo "
+    "Sei Sergio, il tutor di studio di Talent Radar: paziente e amichevole. Rispondi in italiano (o nella lingua dell'utente), in modo "
     "chiaro e conciso, usando Markdown leggero quando aiuta. Se viene fornito del materiale, basati su quello e "
     "dillo quando una cosa non c'è; altrimenti usa conoscenze accurate e consolidate. Non inventare dati, date o "
     "nomi. Non inserire mai link o indirizzi web. Non scrivere tu riassunti, quiz o flashcard nella chat: se "
@@ -71,7 +71,7 @@ def material_block(text: str | None, topic: str | None) -> str:
 
 
 ANALYZE_SYSTEM = (
-    "Sei l'assistente di Talent Passport, un passaporto dei talenti per studenti delle superiori. "
+    "Sei l'assistente di Talent Radar, una piattaforma che aiuta studenti e lavoratori a raccontare e far crescere i propri talenti. "
     "Colleghi una \"prova\" (un'attività fatta a scuola o fuori) alle competenze chiave europee. "
     "Sii onesto: basati solo su ciò che la prova descrive, non gonfiare i risultati e non inventare dettagli. "
     "Scrivi in italiano. Rispondi esclusivamente con JSON valido conforme allo schema."

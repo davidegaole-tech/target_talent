@@ -1,7 +1,7 @@
 [project]
-name = "talent-passport"
+name = "talent-radar"
 version = "0.1.0"
-description = "Talent Passport con tutor AI locale (Ollama): riassunti, quiz e flashcard"
+description = "Talent Radar con tutor AI locale (Ollama): riassunti, quiz e flashcard"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.110",

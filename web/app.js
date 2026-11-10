@@ -3,41 +3,37 @@ state.diarioFilter=null;
 
 const ROUTES={
  passaporto:renderPassaporto,
- nuova:renderNuova,
- diario:renderDiario,
- documenti:renderDocumenti,
+ competenze:renderCompetenze,
+ planner:renderPlanner,
+ esperienze:renderEsperienze,
+ appunti:renderAppunti,
  voti:renderVoti,
- macroaree:renderMacroaree,
- esposizione:renderEsposizione,
+ portfolio:renderPortfolio,
+ social:renderSocial,
+ nuova:renderNuova,
  orientamento:renderOrientamento,
  cv:renderCv,
- recap:renderRecap,
- social:renderSocial,
- portfolio:renderPortfolio,
  privacy:renderPrivacy
 };
-
-function render(){
-  const r=state.route;
-  if(!ROUTES[r]) state.route='passaporto';
-  renderShell();
-  $('view').innerHTML=ROUTES[state.route]();
-  if(state.route==='passaporto'){
-    const vals=EU.map(c=>scoreOf(c.id));
-    if(!state.radarValues) state.radarValues=vals.map(()=>0);
-    tweenRadar(vals);
-  }
+// Vecchi indirizzi delle sezioni accorpate
+const ROUTE_ALIASES={diario:'esperienze',esposizione:'esperienze',documenti:'esperienze',macroaree:'competenze',recap:'passaporto'};
+function haVoti(){ return state.ruolo!=='lavoratore'; }
+function resolveRoute(r){
+  r=ROUTE_ALIASES[r]||r;
+  if(r==='voti' && !haVoti()) r='passaporto';
+  return ROUTES[r]?r:'passaporto';
 }
 
 function navigate(hash){
-  const r=hash.replace('#/','')||'passaporto';
+  const r=resolveRoute(hash.replace('#/','')||'passaporto');
   state.route=r;
-  location.hash='#/'+r;
+  if(location.hash!=='#/'+r) location.hash='#/'+r;
   render();
+  window.scrollTo(0,0);
 }
 
 window.addEventListener('hashchange',()=>{
-  const r=location.hash.replace('#/','')||'passaporto';
+  const r=resolveRoute(location.hash.replace('#/','')||'passaporto');
   if(r!==state.route){ state.route=r; render(); }
 });
 
@@ -79,7 +75,7 @@ document.addEventListener('click',e=>{
     p.res.comp.forEach(c=>{state.prove[c.id]=(state.prove[c.id]||0)+1;});
     state.pending=null; state.prefill=null; state.pendingAmbito=null;
     toast('Prova aggiunta al tuo diario');
-    navigate(ev.ambito==='extra'?'#/esposizione':'#/diario');
+    navigate('#/esperienze');
     return;
   }
   if(a==='correggi'){ if(state.pending) openCorreggi('pending'); return; }
@@ -134,12 +130,19 @@ document.addEventListener('click',e=>{
   if(a==='navigateNuova'){ state.prefill=null; state.pending=null; state.pendingAmbito=el.dataset.ambito||null; navigate('#/nuova'); return; }
   if(a==='apriCv'){ navigate('#/cv'); return; }
   if(a==='openSettings'){ closeProfile(); openModal(renderSettings()); return; }
+  if(a==='logout'){ closeProfile(); logout(); return; }
+  if(a==='setRuolo'){ state.ruolo=v; render(); refreshSettings(); toast('Ruolo aggiornato'); return; }
+  if(a==='toggleStar'){ e.stopPropagation(); const ev=state.evidences.find(x=>x.id===el.dataset.id); if(ev){ ev.evidenza=!ev.evidenza; render(); toast(ev.evidenza?'In evidenza nel passaporto':'Tolta dal passaporto'); } return; }
+  if(a==='toggleDocStar'){ const id=el.dataset.id; const i=state.docEvidenza.indexOf(id); if(i>=0) state.docEvidenza.splice(i,1); else state.docEvidenza.push(id); render(); toast(i>=0?'Tolto dal passaporto':'In evidenza nel passaporto'); return; }
+  if(a==='passView'){ state.passView=v; render(); return; }
+  if(a==='recapPeriodo'){ state.recapPeriodo=v; render(); return; }
+  if(a==='migliora'){ openModal(renderMigliora(v)); return; }
   if(a==='toggleProfile'){ const m=$('profileMenu'); if(m) m.hidden=!m.hidden; return; }
   if(a==='gotoPrivacy'){ closeProfile(); navigate('#/privacy'); return; }
-  if(a==='setTheme'){ state.theme=v; document.documentElement.setAttribute('data-theme',v); render(); return; }
-  if(a==='setMood'){ state.mascotMood=v; renderMascot(); render(); return; }
-  if(a==='setReduceMotion'){ state.reduceMotion=(v==='on'); applyVisuals(); render(); return; }
-  if(a==='setTextSize'){ state.textSize=v; applyVisuals(); render(); return; }
+  if(a==='setTheme'){ state.theme=v; document.documentElement.setAttribute('data-theme',v); render(); refreshSettings(); return; }
+  if(a==='setMood'){ state.mascotMood=v; render(); refreshSettings(); return; }
+  if(a==='setReduceMotion'){ state.reduceMotion=(v==='on'); applyVisuals(); render(); refreshSettings(); return; }
+  if(a==='setTextSize'){ state.textSize=v; applyVisuals(); render(); refreshSettings(); return; }
   if(a==='socialTab'){ state.socialTab=v; render(); return; }
   if(a==='sendRequest'){ const u=state.directory.find(x=>x.id===v); if(u){ u.relation='outgoing'; if(!state.requestsOut.includes(v)) state.requestsOut.push(v); toast('Richiesta di amicizia inviata a '+u.name); } render(); return; }
   if(a==='acceptRequest'){ const u=state.directory.find(x=>x.id===v); if(u){ u.relation='friend'; state.requestsIn=state.requestsIn.filter(x=>x!==v); state.chats[v]=state.chats[v]||[]; toast('Hai accettato la richiesta di '+u.name); } render(); return; }
@@ -250,9 +253,10 @@ function salvaCorrezione(target){
 /* ---------- Profilo dello studente (usato da CV, portfolio e intestazioni) ---------- */
 const PROFILE_FIELDS=[
   ['nome','Nome'],['cognome','Cognome'],['nascita','Data di nascita','date'],['citta','Città'],
-  ['email','Email','email'],['telefono','Telefono','tel'],['scuola','Scuola'],['classe','Classe'],['anno','Anno scolastico'],
-  ['presentazione','Due righe su di te (per il CV)','area'],['lingue','Lingue e livelli','area'],
-  ['digitali','Competenze digitali (strumenti, programmi)','area'],['interessi','Interessi e hobby','area']
+  ['email','Email','email'],['telefono','Telefono','tel'],['scuola','Scuola'],['classe','Classe (facoltativa)'],['anno','Anno scolastico'],
+  ['presentazione','Due righe su di te (visibili nel passaporto e nel CV)','area'],['sport','Sport praticati (separati da virgola)'],
+  ['interessi','Hobby e interessi (separati da virgola)'],['lingue','Lingue e livelli','area'],
+  ['digitali','Competenze digitali (strumenti, programmi)','area']
 ];
 function renderProfileEditor(){
   const p=state.profilo;
@@ -262,7 +266,7 @@ function renderProfileEditor(){
   return `
     <button class="modal-close" data-action="closeModal">✕</button>
     <div style="font-weight:700;font-size:16px;margin-bottom:4px">Il mio profilo</div>
-    <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px">Questi dati servono a compilare il CV in automatico. Restano solo su questo dispositivo.</div>
+    <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px">Nome, scuola, classe, città, presentazione, sport e hobby compaiono nel tuo passaporto, che gli altri possono vedere ma solo tu puoi modificare. Email, telefono e data di nascita servono solo per il CV.</div>
     <div class="profile-grid">${PROFILE_FIELDS.map(field).join('')}</div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px">
       <button class="btn sm" data-action="closeModal">Annulla</button>
@@ -293,9 +297,15 @@ function chiediASergio(domanda){
   window.askSergio(domanda, contestoProfilo());
 }
 
+/* Il modale delle impostazioni è statico: dopo ogni scelta lo ridisegno, così il pulsante selezionato cambia. */
+function refreshSettings(){
+  const card=document.querySelector('#modalRoot .modal-card');
+  if(card && card.querySelector('[data-action="setTheme"]')) card.innerHTML=renderSettings();
+}
+
 // init
 if(!location.hash) location.hash='#/passaporto';
-state.route=location.hash.replace('#/','')||'passaporto';
+state.route=resolveRoute(location.hash.replace('#/','')||'passaporto');
 
 function saveState(){
   try{
@@ -303,7 +313,8 @@ function saveState(){
       prove:state.prove, evidences:state.evidences, diarioFilter:state.diarioFilter,
       privacy:state.privacy, dailyTip:state.dailyTip, mascotMood:state.mascotMood,
       theme:state.theme, streak:state.streak, reduceMotion:state.reduceMotion, textSize:state.textSize,
-      materie:state.materie, profilo:state.profilo
+      materie:state.materie, profilo:state.profilo, ruolo:state.ruolo, planner:state.planner,
+      docEvidenza:state.docEvidenza, recapPeriodo:state.recapPeriodo
     }));
   }catch(e){}
 }
@@ -324,6 +335,11 @@ function loadState(){
       state.textSize=p.textSize||'normale';
       if(Array.isArray(p.materie)) state.materie=p.materie;
       if(p.profilo) state.profilo={...state.profilo,...p.profilo};
+      if(p.ruolo) state.ruolo=p.ruolo;
+      if(Array.isArray(p.planner)) state.planner=p.planner;
+      if(Array.isArray(p.docEvidenza)) state.docEvidenza=p.docEvidenza;
+      if(p.recapPeriodo) state.recapPeriodo=p.recapPeriodo;
+      if(!['felice','curioso'].includes(state.mascotMood)) state.mascotMood='felice';
       // Prove salvate prima che esistesse l'ambito: quelle note fuori da scuola, le altre a scuola
       const extra=['e2','e4','e7'];
       state.evidences.forEach(e=>{ if(!e.ambito) e.ambito=extra.includes(e.id)?'extra':'scuola'; });
@@ -343,12 +359,11 @@ document.addEventListener('click',e=>{
   }
 });
 function render(){
-  const r=state.route;
-  if(!ROUTES[r]) state.route='passaporto';
+  state.route=resolveRoute(state.route);
   applyVisuals();
   renderShell();
   $('view').innerHTML=ROUTES[state.route]();
-  if(state.route==='passaporto'){
+  if(state.route==='competenze'){
     const vals=EU.map(c=>scoreOf(c.id));
     if(!state.radarValues) state.radarValues=vals.map(()=>0);
     tweenRadar(vals);

@@ -146,7 +146,7 @@ def flashcards_schema(min_items: int = 4) -> dict[str, Any]:
     }
 
 
-# --- Analisi delle prove di Talent Passport ---
+# --- Analisi delle prove di Talent Radar ---
 COMPETENCES: dict[str, str] = {
     "alfabetica": "Alfabetica funzionale: leggere, scrivere, argomentare, comprendere testi",
     "multilingue": "Multilinguistica: usare lingue straniere in contesti reali",
@@ -185,8 +185,15 @@ DOCUMENT_KINDS: dict[str, str] = {
     "attestato": "attestato di partecipazione",
     "certificato": "certificazione ufficiale (es. lingua, informatica)",
     "corso": "corso frequentato",
+    "esperienza": "esperienza documentata",
     "altro": "altro documento",
+    "appunti": "appunti di studio",
 }
+
+
+class LoginRequest(BaseModel):
+    username: str = Field(max_length=100)
+    password: str = Field(max_length=200)
 
 
 def analysis_schema(with_suggestion: bool = False) -> dict[str, Any]:

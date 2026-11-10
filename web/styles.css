@@ -165,3 +165,108 @@ body.text-large{zoom:1.07}
 .link-bridge{font-size:10.5px;color:var(--violet);font-weight:700;margin-left:6px}
 .cv .cv-missing{font-size:12px}
 @media print{.cv-missing{display:none}}
+
+/* --- Guida "Come funziona" --- */
+.tour-btn{width:100%;text-align:left;margin-top:10px;border:1px dashed var(--line-soft)}
+.tour{position:fixed;inset:0;z-index:200}
+.tour[hidden]{display:none}
+.tour-hole{position:fixed;border-radius:12px;box-shadow:0 0 0 9999px rgba(15,23,42,.55);outline:2px solid var(--accent);outline-offset:2px;transition:all .25s ease;pointer-events:none}
+.tour-center .tour-hole{left:50%;top:50%;width:0;height:0;outline:0}
+.tour-card{position:fixed;width:min(340px,calc(100vw - 24px));background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 24px 60px rgba(0,0,0,.3);padding:18px 18px 14px;transition:left .25s ease,top .25s ease}
+.tour-count{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.08em}
+.tour-title{font-size:16px;font-weight:700;margin-top:4px;letter-spacing:-.2px}
+.tour-text{font-size:13px;line-height:1.6;color:var(--text);margin-top:8px}
+.tour-dots{display:flex;gap:4px;margin-top:14px;flex-wrap:wrap}
+.tour-dots span{width:6px;height:6px;border-radius:99px;background:var(--track)}
+.tour-dots span.on{background:var(--accent);width:16px}
+.tour-actions{display:flex;gap:6px;align-items:center;margin-top:14px}
+body.tour-on .mascot-bubble{display:none}
+@media(max-width:900px){.tour-btn{width:auto;margin-top:0;white-space:nowrap}}
+@media(prefers-reduced-motion:reduce){.tour-hole,.tour-card{transition:none}}
+@media print{.tour{display:none!important}}
+
+/* --- Talent Radar: logo, mascotte, accesso --- */
+.brand-logo{width:36px;height:36px;border-radius:11px;flex:none;object-fit:cover;box-shadow:0 6px 14px rgba(30,64,175,.25)}
+.mascot-panda{padding:0;border:0;background:none;line-height:0}
+.mascot-panda img{width:64px;height:64px;display:block;filter:drop-shadow(0 6px 12px rgba(0,0,0,.22))}
+.gate{position:fixed;inset:0;z-index:300;display:grid;place-items:center;padding:16px;overflow:auto;
+  background:radial-gradient(1200px 600px at 20% 0%,var(--accent-soft),transparent 60%),var(--bg)}
+.gate[hidden]{display:none}
+body.gate-on .mascot,body.gate-on .tt-panel{display:none!important}
+.gate-card{width:min(380px,100%);background:var(--surface);border:1px solid var(--line);border-radius:22px;box-shadow:0 24px 60px rgba(15,23,42,.14);padding:28px 26px;text-align:center;animation:rise .35s}
+.gate-wide{width:min(720px,100%)}
+.gate-logo{border-radius:22px;margin:0 auto 10px;display:block}
+.gate-title{font-size:24px;font-weight:800;letter-spacing:-.5px}
+.gate-sub{font-size:13px;color:var(--muted);margin:6px 0 20px;line-height:1.5}
+.gate-card .form-row{text-align:left}
+.gate-btn{width:100%;justify-content:center;padding:11px 15px;font-size:14px}
+.gate-err{background:#fdecee;color:#9f1d2c;border-radius:10px;padding:9px 12px;font-size:12.5px;margin:-4px 0 12px;text-align:left}
+[data-theme="dark"] .gate-err{background:#3a1820;color:#fda4af}
+.gate-roles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.gate-role{display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 14px;border:1.5px solid var(--line);border-radius:16px;background:var(--surface);transition:.15s}
+.gate-role:hover,.gate-role:focus-visible{border-color:var(--accent);background:var(--accent-soft);transform:translateY(-2px)}
+.gate-re{font-size:30px}.gate-rt{font-weight:700;font-size:14px}.gate-rd{font-size:12px;color:var(--muted);line-height:1.4}
+@media(max-width:640px){.gate-roles{grid-template-columns:1fr}}
+
+/* --- Passaporto (profilo pubblico) --- */
+.pp-preview{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--accent-soft);color:var(--accent);border-radius:12px;padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:14px}
+.pp-head{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.pp-avatar{width:84px;height:84px;border-radius:24px;flex:none;display:grid;place-items:center;font-size:28px;font-weight:800;color:#fff;background:linear-gradient(135deg,#6366f1,#a855f7);box-shadow:0 10px 24px rgba(99,102,241,.3)}
+.pp-id{flex:1;min-width:220px}
+.pp-id h1{font-size:24px;letter-spacing:-.5px}
+.pp-meta{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-top:8px;font-size:12.5px;color:var(--text2)}
+.pp-meta span{display:inline-flex;align-items:center;gap:5px}
+.pp-bio{font-size:13.5px;line-height:1.6;color:var(--text);margin-top:12px;max-width:65ch}
+.pp-actions{display:flex;gap:8px;flex-wrap:wrap}
+.pp-titoli{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.pp-titolo{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:99px;font-weight:700;font-size:13px;color:var(--tc);background:color-mix(in srgb,var(--tc) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--tc) 30%,transparent)}
+.pp-te{font-size:16px}
+.pp-comp{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.pp-comp:last-child{border-bottom:0}
+.pp-dot{width:9px;height:9px;border-radius:3px;flex:none}
+.pp-comp-n{flex:1;font-size:13px;color:var(--ink)}
+.pp-lv{font-size:11.5px;font-weight:700}
+.pp-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.pp-tag{padding:6px 12px;border-radius:99px;background:var(--soft);font-size:12.5px;font-weight:600;color:var(--text)}
+.pp-tag.sport{background:#fef3e2;color:#b45309}
+[data-theme="dark"] .pp-tag.sport{background:#3a2e10;color:#fbbf24}
+.pp-recap{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:12px}
+.pp-rc{border:1px solid var(--line);border-radius:12px;padding:11px 13px;cursor:pointer;transition:.15s}
+.pp-rc:hover{border-color:var(--line-soft);background:var(--surface2)}
+.pp-rc-t{font-weight:650;font-size:13px}
+.pp-rc-d{font-size:11.5px;color:var(--muted);margin-top:4px}
+
+/* --- Stella "in evidenza" --- */
+.star{font-size:16px;line-height:1;color:var(--line-soft);padding:2px 4px;border-radius:6px}
+.star:hover{color:var(--amber)}
+.star.on{color:var(--amber)}
+
+/* --- Competenze --- */
+.comp-row{display:flex;align-items:center;gap:10px;padding:7px 0;flex-wrap:wrap}
+.comp-name{width:150px;font-size:12.5px;font-weight:650;flex:none}
+.comp-bar{flex:1;display:flex;align-items:center;gap:8px;min-width:120px}
+.comp-bar .bar-val{width:40px}
+.comp-up{width:82px;flex:none;justify-content:center}
+@media(max-width:640px){.comp-name{width:100%}}
+
+/* --- Planner --- */
+.plan-item{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line)}
+.plan-item:last-child{border-bottom:0}
+.plan-check{width:22px;height:22px;flex:none;border-radius:7px;border:1.5px solid var(--line-soft);display:grid;place-items:center;color:#fff;margin-top:1px}
+.plan-check.on{background:var(--green);border-color:var(--green)}
+.plan-t{font-weight:650;font-size:13.5px;color:var(--ink)}
+.plan-item.fatto .plan-t{text-decoration:line-through;color:var(--muted)}
+.plan-q{font-size:11.5px;color:var(--muted);margin-top:3px}
+.plan-q.urgente{color:var(--amber);font-weight:700}
+.plan-n{font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5}
+.plan-c{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.plan-src{font-size:10.5px;color:var(--label)}
+.plan-del{color:var(--label);font-size:12px;padding:2px 6px;border-radius:6px;flex:none}
+.plan-del:hover{color:var(--rose)}
+.plan-del.armed{background:var(--rose);color:#fff;font-weight:700}
+.plan-done summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px}
+.plan-done summary::-webkit-details-marker{display:none}
+
+/* --- Appunti --- */
+.note-card{display:flex;flex-direction:column}
+.note-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:12px;font-size:12px;color:var(--muted)}
