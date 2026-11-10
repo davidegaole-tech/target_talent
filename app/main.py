@@ -17,7 +17,7 @@ from .services import Services
 
 def create_app(config: Config | None = None, client: LLMClient | None = None, db: Database | None = None) -> FastAPI:
     config = config or load_config()
-    app = FastAPI(title="Quaderno Locale", docs_url="/api/docs", openapi_url="/api/openapi.json")
+    app = FastAPI(title="Talent Passport", docs_url="/api/docs", openapi_url="/api/openapi.json")
     app.state.services = Services(
         config=config,
         db=db or Database(config.db_path),

@@ -78,7 +78,7 @@ function sidebarHTML(){
   <nav class="nav">
     ${nav.map(n=>'<a class="nav-item '+(state.route===n.r?'on':'')+'" href="#/'+n.r+'" data-route="'+n.r+'">'+icon(n.i,17)+'<span>'+n.l+'</span></a>').join('')}
   </nav>
-  <div class="side-foot">Prototipo demo<br/>Dati di esempio · AI simulata<br/>GDPR: dati fittizi</div>`;
+  <div class="side-foot">Prototipo demo<br/>Dati di esempio · Tutor AI locale<br/>GDPR: dati fittizi</div>`;
 }
 function topbarHTML(){
   const meta={

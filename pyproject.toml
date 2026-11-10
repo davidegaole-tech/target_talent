@@ -1,7 +1,7 @@
 [project]
-name = "quaderno-locale"
+name = "talent-passport"
 version = "0.1.0"
-description = "Riassunti, quiz e flashcard generati da un modello locale (Ollama)"
+description = "Talent Passport con tutor AI locale (Ollama): riassunti, quiz e flashcard"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.110",

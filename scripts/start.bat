@@ -1,5 +1,5 @@
 @echo off
-rem Avvio di Quaderno locale su Windows.
+rem Avvio di Talent Passport su Windows.
 setlocal EnableDelayedExpansion
 chcp 65001 >nul
 cd /d "%~dp0\.."
@@ -55,6 +55,6 @@ if errorlevel 1 (
 
 rem 5. Avvio e browser
 set "URL=http://localhost:%QUADERNO_PORT%"
-echo Avvio Quaderno su %URL%  ^(chiudi questa finestra per fermarlo^)
+echo Avvio Talent Passport su %URL%  ^(chiudi questa finestra per fermarlo^)
 start "" cmd /c "timeout /t 2 >nul & start %URL%"
 .venv\Scripts\python.exe -m uvicorn app.main:get_app --factory --host 127.0.0.1 --port %QUADERNO_PORT%

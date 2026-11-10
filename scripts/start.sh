@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Avvio di Quaderno locale su macOS/Linux.
+# Avvio di Talent Passport su macOS/Linux.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -48,13 +48,13 @@ if ! curl -sf "$OLLAMA_URL/api/tags" | grep -q "\"name\":\"$QUADERNO_MODEL\""; t
   read -r -p "Vuoi scaricarlo adesso? Può pesare diversi GB [s/N] " ans
   case "$ans" in
     [sSyY]*) ollama pull "$QUADERNO_MODEL" ;;
-    *) echo "Va bene: potrai scegliere un altro modello installato dal menu in alto nella pagina." ;;
+    *) echo "Va bene: potrai scegliere un altro modello installato dal menu del Tutor AI (clicca la mascotte in basso a destra)." ;;
   esac
 fi
 
 # 5. Avvio e browser
 URL="http://localhost:$QUADERNO_PORT"
-echo "Avvio Quaderno su $URL  (Ctrl+C per fermarlo)"
+echo "Avvio Talent Passport su $URL  (Ctrl+C per fermarlo)"
 ( sleep 2
   if command -v xdg-open >/dev/null 2>&1; then xdg-open "$URL" >/dev/null 2>&1
   elif command -v open >/dev/null 2>&1; then open "$URL"; fi ) &
