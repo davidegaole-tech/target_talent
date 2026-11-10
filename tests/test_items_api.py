@@ -117,3 +117,7 @@ def test_index_served(client) -> None:
     r = client.get("/")
     assert r.status_code == 200 and "Talent Passport" in r.text and "tutor.js" in r.text
     assert "googleapis" not in r.text and "cdnjs" not in r.text
+
+
+def test_static_files_are_revalidated(client) -> None:
+    assert client.get("/tutor.js").headers["cache-control"] == "no-cache"

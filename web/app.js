@@ -55,9 +55,7 @@ document.addEventListener('click',e=>{
     const desc=$('p-desc').value.trim();
     const tipo=state.pendingType||'foto';
     if(!titolo){ toast('Dai un titolo alla prova'); return; }
-    const res=analizza(titolo+' '+desc);
-    state.pending={titolo,desc,tipo,res};
-    $('analisi').innerHTML=renderAnalisi(res);
+    analizzaConAI(titolo,desc,tipo,el);
     return;
   }
   if(a==='resetForm'){
@@ -138,6 +136,36 @@ document.addEventListener('click',e=>{
     return;
   }
 });
+
+/* "Analizza con l'AI": modello locale via /api/analyze, con ripiego sull'analisi simulata */
+let analisiCtrl=null;
+async function analizzaConAI(titolo,desc,tipo,btn){
+  if(analisiCtrl) analisiCtrl.abort();
+  const ctrl=analisiCtrl=new AbortController();
+  const label=btn?btn.innerHTML:'';
+  if(btn){ btn.disabled=true; btn.innerHTML='Analizzo… '+icon('sparkles',14); }
+  const box=$('analisi');
+  if(box) box.innerHTML='<div class="ai-loading"><span class="ai-spin"></span>Il modello sta leggendo la prova…</div>';
+  let res, motivo='';
+  try{
+    const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},signal:ctrl.signal,
+      body:JSON.stringify({title:titolo,description:desc,kind:tipo})});
+    const data=await r.json().catch(()=>null);
+    if(!r.ok) throw new Error(data?.error?.message||('Errore del server ('+r.status+')'));
+    res={comp:data.comp,dims:dimsOf(data.comp.map(c=>c.id)),perche:escHTML(data.perche),
+      segnali:data.segnali.map(escHTML),conf:data.conf,fonte:'modello',modello:escHTML(data.model)};
+  }catch(e){
+    if(e.name==='AbortError') return;
+    motivo=e instanceof TypeError?'il server del tutor non è avviato':e.message;
+    res={...analizza(titolo+' '+desc),fonte:'simulata',motivo:escHTML(motivo)};
+  }finally{
+    if(analisiCtrl===ctrl) analisiCtrl=null;
+    if(btn && btn.isConnected){ btn.disabled=false; btn.innerHTML=label; }
+  }
+  if(state.route!=='nuova' || !$('analisi')) return;   // l'utente ha cambiato pagina
+  state.pending={titolo,desc,tipo,res};
+  $('analisi').innerHTML=renderAnalisi(res);
+}
 
 // init
 if(!location.hash) location.hash='#/passaporto';

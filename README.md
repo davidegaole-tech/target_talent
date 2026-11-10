@@ -4,7 +4,9 @@ Prototipo di **passaporto dei talenti** per studenti: raccogli prove (foto, link
 
 Dentro c'è un **Tutor AI** che gira **sul tuo computer** grazie a [Ollama](https://ollama.com): si apre cliccando la **mascotte** (la faccina in basso a destra) e crea riassunti, quiz e flashcard dai tuoi appunti.
 
-> È un prototipo: i dati del passaporto sono di esempio e restano nel browser. L'analisi delle prove ("Analizza con l'AI") è ancora simulata; il Tutor AI invece usa un modello vero.
+Anche **"Analizza con l'AI"** (pagina *Aggiungi una prova*) usa lo stesso modello locale per collegare ogni prova alle competenze chiave.
+
+> È un prototipo: i dati del passaporto sono di esempio e restano nel browser.
 
 ## Installazione in 3 passi
 
@@ -22,7 +24,7 @@ Ti servono **Python 3.11 o più recente** ([python.org](https://www.python.org/d
    La prima volta lo script crea l'ambiente Python e installa le dipendenze, poi apre il browser su <http://localhost:8765>.
    Se il modello configurato non è installato, lo script ti chiede se scaricarlo.
 
-> Aprendo `web/index.html` direttamente dal file, il passaporto si vede ma il Tutor AI non funziona: serve il server avviato dallo script.
+> Aprendo `web/index.html` direttamente dal file, il passaporto si vede ma il Tutor AI non funziona e "Analizza con l'AI" torna all'analisi simulata (lo dice sotto il risultato): serve il server avviato dallo script.
 
 ## Il Tutor AI
 
@@ -34,6 +36,13 @@ Clicca la mascotte in basso a destra per aprire il pannello (si chiude con × o 
 - Una generazione in corso si ferma con **Annulla**.
 - **Le mie schede**: tutto quello che il tutor crea viene salvato qui. Apri una scheda per leggere il riassunto, fare il quiz (il miglior punteggio viene ricordato) o ripassare le flashcard.
 - In alto nel pannello vedi se Ollama è attivo e puoi **cambiare modello**.
+
+## Analizza con l'AI
+
+Nella pagina **Aggiungi una prova** scrivi titolo e descrizione e premi **Analizza con l'AI**. Il modello sceglie le 1–2 competenze chiave europee che la prova dimostra meglio, con una percentuale, il *perché* e i *segnali*: parole prese dal tuo testo che giustificano la scelta. Puoi poi aggiungere la prova al passaporto.
+
+- Con un modello da 8B l'analisi richiede in genere 15–30 secondi; la prima dopo l'avvio è più lenta perché il modello viene caricato in memoria.
+- Se il server o Ollama non rispondono, l'app usa l'analisi simulata a parole chiave e lo scrive sotto il risultato.
 
 ## Quale modello scegliere
 
@@ -87,6 +96,6 @@ python3 -m venv .venv
 
 Struttura:
 - `web/` — frontend senza build step. `index.html`, `app.js`, `data.js`, `ui.js`, `pages*.js`, `styles.css` sono Talent Passport; `tutor.js` e `tutor.css` sono il pannello del Tutor AI; `vendor/` contiene `marked` e `DOMPurify` serviti in locale.
-- `app/` — backend FastAPI: client Ollama, generatori di riassunti/quiz/flashcard con validazione e chunking, SQLite, API sotto `/api`.
+- `app/` — backend FastAPI: client Ollama, generatori di riassunti/quiz/flashcard con validazione e chunking, analisi delle prove (`analyze.py`, `POST /api/analyze`), SQLite, API sotto `/api`.
 - `tests/` — test `pytest` con un client Ollama finto.
 - `scripts/` — avvio per macOS/Linux e Windows.

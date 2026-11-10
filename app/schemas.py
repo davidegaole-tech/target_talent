@@ -144,3 +144,60 @@ def flashcards_schema(min_items: int = 4) -> dict[str, Any]:
             },
         },
     }
+
+
+# --- Analisi delle prove di Talent Passport ---
+COMPETENCES: dict[str, str] = {
+    "alfabetica": "Alfabetica funzionale: leggere, scrivere, argomentare, comprendere testi",
+    "multilingue": "Multilinguistica: usare lingue straniere in contesti reali",
+    "stem": "Matematica, scienze, tecnologie e ingegneria: logica, metodo scientifico, progettazione tecnica",
+    "digitale": "Digitale: creare contenuti e strumenti digitali, programmare, usare software in modo consapevole",
+    "personale": "Personale, sociale e imparare a imparare: costanza, gestione del tempo, autoregolazione, relazioni",
+    "cittadinanza": "Cittadinanza: impegno civico, volontariato, ambiente, responsabilità verso la comunità",
+    "imprenditoriale": "Imprenditoriale: iniziativa, organizzazione, guida di un gruppo, gestione di progetti e budget",
+    "cultura": "Consapevolezza ed espressione culturali: arte, musica, teatro, fotografia, design, letteratura",
+}
+ANALYSIS_TYPES = ("foto", "link", "testo", "voce")
+REASON_MAX = 220
+SIGNAL_MAX = 40
+
+
+class AnalyzeRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    description: str = Field(default="", max_length=4000)
+    kind: str | None = None
+
+
+class AnalysisCompetence(BaseModel):
+    id: str
+    p: float = Field(ge=0, le=1)
+
+
+class AnalysisOut(BaseModel):
+    competences: list[AnalysisCompetence] = Field(min_length=1)
+    reason: str = Field(min_length=3)
+    signals: list[str] = Field(default_factory=list)
+
+
+def analysis_schema() -> dict[str, Any]:
+    return {
+        "type": "object",
+        "required": ["competences", "reason", "signals"],
+        "properties": {
+            "competences": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 3,
+                "items": {
+                    "type": "object",
+                    "required": ["id", "p"],
+                    "properties": {
+                        "id": {"type": "string", "enum": list(COMPETENCES)},
+                        "p": {"type": "number", "minimum": 0, "maximum": 1},
+                    },
+                },
+            },
+            "reason": {"type": "string"},
+            "signals": {"type": "array", "items": {"type": "string"}, "minItems": 1, "maxItems": 5},
+        },
+    }

@@ -1,5 +1,6 @@
 /* ---------- UI HELPERS ---------- */
 function $(id){return document.getElementById(id);}
+function escHTML(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('on');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('on'),2800);}
 function openModal(html){const r=$('modalRoot');r.innerHTML='<div class="modal-backdrop" data-action="closeModal"></div><div class="modal-card">'+html+'</div>';r.classList.add('on');}
 function closeModal(){const r=$('modalRoot');r.classList.remove('on');r.innerHTML='';}

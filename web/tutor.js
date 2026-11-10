@@ -528,13 +528,17 @@ async function runChat(userText) {
 }
 
 /* Riconoscimento intento */
+/* Tolleranti agli errori di battitura: "flashacard", "flascard", "quizz", "riasunto", "domade"… */
+const RE_SUMMARY = /\bri?a?s{1,2}u[mn]|\bsintes|\bsintetizz/;
+const RE_QUIZ = /\bq\w?u?i+z+|\bdoma\w?d/;
+const RE_CARDS = /\bfla\w{0,3}\s*-?\s*ca?r?d|\bflash|\bcards?\b|\bschede\b|\bcarte\b|\bcartoncin/;
 function detectKinds(t) {
   const s = t.toLowerCase();
   if (/tutti e tre|tutte e tre|tutto quanto/.test(s)) return ["summary", "quiz", "flashcards"];
   const k = [];
-  if (/riassunt|sintesi|riassum/.test(s)) k.push("summary");
-  if (/quiz|domand/.test(s)) k.push("quiz");
-  if (/flash ?card|schede|carte/.test(s)) k.push("flashcards");
+  if (RE_SUMMARY.test(s)) k.push("summary");
+  if (RE_QUIZ.test(s)) k.push("quiz");
+  if (RE_CARDS.test(s)) k.push("flashcards");
   return k;
 }
 function topicFrom(t) {
@@ -542,7 +546,7 @@ function topicFrom(t) {
   return m ? m[1].replace(/[.?!]+$/, "").trim() : "";
 }
 function countFrom(t, kind) {
-  const re = kind === "quiz" ? /(\d{1,2})\s*(?:domand|quesit)/i : /(\d{1,2})\s*(?:flash ?card|carte|schede)/i;
+  const re = kind === "quiz" ? /(\d{1,2})\s*(?:doma\w?d|quesit)/i : /(\d{1,2})\s*(?:fla\w{0,3}\s*-?\s*ca?r?d|flash|cards?|carte|schede)/i;
   const m = t.match(re); return m ? parseInt(m[1], 10) : null;
 }
 function currentCounts(text = "") {

@@ -167,6 +167,7 @@ function renderAnalisi(res){
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${chips}</div>
     <p style="font-size:12.5px;color:var(--text);line-height:1.55"><strong>Perché:</strong> ${res.perche}.</p>
     <div style="margin-top:10px;font-size:11.5px;color:#6b7280">Segnali rilevati: ${seg}</div>
+    <div class="ai-source">${res.fonte==='modello'?'Analisi del modello locale · '+res.modello:res.fonte==='simulata'?'Analisi simulata: '+res.motivo+'. Avvia il tutor per usare il modello vero.':''}</div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn primary" data-action="conferma">Aggiungi al Passaporto ${icon('check',14)}</button>
@@ -223,8 +224,8 @@ function renderOrientamento(){
     ${dirs.map(d=>`
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <span class="chip" style="background:'+d.col+'1f;color:'+d.col+'">'+d.tipo+'</span>
-          <div style="font-size:22px;font-weight:700;color:'+d.col+';letter-spacing:-.4px">'+d.match+'%</div>
+          <span class="chip" style="background:${d.col}1f;color:${d.col}">${d.tipo}</span>
+          <div style="font-size:22px;font-weight:700;color:${d.col};letter-spacing:-.4px">${d.match}%</div>
         </div>
         <div style="font-weight:700;font-size:14px;margin-bottom:6px">${d.titolo}</div>
         <p style="font-size:12.5px;color:var(--text2);line-height:1.55;margin-bottom:10px">${d.why}</p>
