@@ -156,7 +156,7 @@ async function analizzaConAI(titolo,desc,tipo,btn){
       segnali:data.segnali.map(escHTML),conf:data.conf,fonte:'modello',modello:escHTML(data.model)};
   }catch(e){
     if(e.name==='AbortError') return;
-    motivo=e instanceof TypeError?'il server del tutor non è avviato':e.message;
+    motivo=e instanceof TypeError?'il server di Sergio non è avviato':e.message;
     res={...analizza(titolo+' '+desc),fonte:'simulata',motivo:escHTML(motivo)};
   }finally{
     if(analisiCtrl===ctrl) analisiCtrl=null;

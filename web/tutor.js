@@ -1,4 +1,4 @@
-/* Tutor AI (ex Quaderno): pannello che si apre dalla mascotte.
+/* Sergio, il tutor AI (ex Quaderno): pannello che si apre dalla mascotte.
    Parla solo con il backend sulla stessa origine (/api), che a sua volta usa Ollama in locale. */
 (() => {
 "use strict";
@@ -18,12 +18,12 @@ const TOPIC_MAX = 120;
 
 /* ---------- Markup ---------- */
 const panel = document.createElement("section");
-panel.className = "tt-panel"; panel.id = "tutor"; panel.setAttribute("aria-label", "Tutor AI");
+panel.className = "tt-panel"; panel.id = "tutor"; panel.setAttribute("aria-label", "Sergio, il tutor AI");
 panel.innerHTML = `
   <div class="tt-head">
     <div class="tt-mark" aria-hidden="true">🐼</div>
     <div>
-      <div class="tt-title">Tutor AI</div>
+      <div class="tt-title">Sergio</div>
       <div class="tt-sub"><span class="tt-dot" id="ttDot"></span><span id="ttStat">Controllo Ollama…</span>
         <select id="ttModel" aria-label="Modello attivo" disabled><option>—</option></select></div>
     </div>
@@ -39,7 +39,7 @@ panel.innerHTML = `
   </div>
   <div class="tt-body" id="ttChatView">
     <div class="tt-log" id="ttLog">
-      <div class="tt-msg bot">Ciao! Incolla appunti, allega un file (.txt, .md, .pdf, .docx) o scrivi un argomento. Poi scegli <b>Riassunto</b>, <b>Quiz</b> o <b>Flashcard</b>: ogni cosa che creo diventa una scheda. Puoi anche farmi domande libere.</div>
+      <div class="tt-msg bot">Ciao, sono Sergio! Incolla appunti, allega un file (.txt, .md, .pdf, .docx) o scrivi un argomento. Poi scegli <b>Riassunto</b>, <b>Quiz</b> o <b>Flashcard</b>: ogni cosa che creo diventa una scheda. Puoi anche farmi domande libere.</div>
     </div>
     <div class="tt-composer">
       <div class="tt-chips" id="ttChips">
@@ -111,7 +111,7 @@ $("#ttTabLib").onclick = () => setTab("lib");
 
 /* ---------- API ---------- */
 class ApiError extends Error { constructor(code, message) { super(message); this.code = code; } }
-const NET_MSG = "Il server del tutor non risponde. Avvia l'app con scripts/start.sh.";
+const NET_MSG = "Sergio non risponde: il server è spento. Avvia l'app con scripts/start.sh.";
 async function api(path, opts = {}) {
   const init = { ...opts, headers: { ...(opts.body && !(opts.body instanceof FormData) ? { "Content-Type": "application/json" } : {}), ...(opts.headers || {}) } };
   let res;
@@ -228,7 +228,7 @@ $("#ttExport").onclick = async () => {
     const blob = new Blob([JSON.stringify({ app: "quaderno-locale", version: 1, exported_at: Date.now(), items: all }, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `schede-tutor-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `schede-sergio-${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     toast(`Esportate ${all.length} schede.`);
@@ -383,7 +383,7 @@ async function checkHealth() {
   const banner = $("#ttBanner");
   if (!h) {
     banner.className = "tt-banner show";
-    $("#ttBannerTxt").innerHTML = "<b>Il tutor non è collegato.</b> Avvia l'app con:";
+    $("#ttBannerTxt").innerHTML = "<b>Sergio non è collegato.</b> Avvia l'app con:";
     $("#ttBannerCmd").textContent = "./scripts/start.sh";
   } else if (!ollamaOk) {
     banner.className = "tt-banner show";
@@ -438,8 +438,15 @@ function addMsg(role, html, cls = "") {
 }
 function say(t, err = false) { addMsg("bot", esc(t), err ? "err" : ""); }
 function setBusy(b) {
-  busy = b; sendBtn.disabled = b;
-  panel.querySelectorAll("#ttChips .tt-chip").forEach(c => c.disabled = b);
+  busy = b;
+  panel.classList.toggle("tt-busy", b);
+}
+/* Durante una generazione i comandi restano cliccabili ma spiegano perché non partono. */
+let busyNoticeAt = 0;
+function busyNotice() {
+  if (Date.now() - busyNoticeAt < 4000) return;
+  busyNoticeAt = Date.now();
+  say("Sto ancora lavorando alla richiesta precedente: aspetta che finisca oppure premi Annulla. Il testo che hai scritto resta nella casella.");
 }
 const clampN = (el, lo, hi, def) => { const n = parseInt(el.value, 10); const v = Number.isFinite(n) ? Math.max(lo, Math.min(hi, n)) : def; el.value = v; return v; };
 
@@ -557,7 +564,8 @@ function currentCounts(text = "") {
 
 async function send() {
   const text = input.value.trim();
-  if (busy || (!text && !attachedText)) return;
+  if (!text && !attachedText) return;
+  if (busy) { busyNotice(); return; }
   const kinds = text.length < 300 ? detectKinds(text) : [];
   addMsg("user", (text || "Ecco il mio materiale.") + (attachedText ? `\n📎 ${attachedName}` : ""));
   input.value = ""; autosize();
@@ -581,7 +589,8 @@ async function send() {
 }
 
 $("#ttChips").addEventListener("click", e => {
-  const b = e.target.closest("[data-ask]"); if (!b || busy) return;
+  const b = e.target.closest("[data-ask]"); if (!b) return;
+  if (busy) { busyNotice(); return; }
   const typed = input.value.trim();
   const src = attachedText ? resolveSource("", typed.length < TOPIC_MAX ? typed : "")
     : typed ? resolveSource(typed, typed.length < TOPIC_MAX ? typed : "")

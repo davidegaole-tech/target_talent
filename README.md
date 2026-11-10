@@ -2,7 +2,7 @@
 
 Prototipo di **passaporto dei talenti** per studenti: raccogli prove (foto, link, testi), le colleghi alle 8 competenze chiave europee e alle dimensioni *Essere · Fare · Lavorare*, e segui il tuo profilo nel radar, nel diario, nell'orientamento e nell'e-portfolio.
 
-Dentro c'è un **Tutor AI** che gira **sul tuo computer** grazie a [Ollama](https://ollama.com): si apre cliccando la **mascotte** (la faccina in basso a destra) e crea riassunti, quiz e flashcard dai tuoi appunti.
+Dentro c'è **Sergio**, un tutor AI che gira **sul tuo computer** grazie a [Ollama](https://ollama.com): si apre cliccando la **mascotte** (la faccina in basso a destra) e crea riassunti, quiz e flashcard dai tuoi appunti.
 
 Anche **"Analizza con l'AI"** (pagina *Aggiungi una prova*) usa lo stesso modello locale per collegare ogni prova alle competenze chiave.
 
@@ -24,17 +24,17 @@ Ti servono **Python 3.11 o più recente** ([python.org](https://www.python.org/d
    La prima volta lo script crea l'ambiente Python e installa le dipendenze, poi apre il browser su <http://localhost:8765>.
    Se il modello configurato non è installato, lo script ti chiede se scaricarlo.
 
-> Aprendo `web/index.html` direttamente dal file, il passaporto si vede ma il Tutor AI non funziona e "Analizza con l'AI" torna all'analisi simulata (lo dice sotto il risultato): serve il server avviato dallo script.
+> Aprendo `web/index.html` direttamente dal file, il passaporto si vede ma Sergio non funziona e "Analizza con l'AI" torna all'analisi simulata (lo dice sotto il risultato): serve il server avviato dallo script.
 
-## Il Tutor AI
+## Sergio, il tutor AI
 
 Clicca la mascotte in basso a destra per aprire il pannello (si chiude con × o con Esc).
 
-- **Chat**: fai domande libere ("non ho capito il ciclo di Calvin"). Il tutor risponde basandosi sull'ultimo materiale che gli hai dato.
+- **Chat**: fai domande libere ("non ho capito il ciclo di Calvin"). Sergio risponde basandosi sull'ultimo materiale che gli hai dato.
 - **Riassunto, Quiz, Flashcard, Tutti e tre**: scrivi un argomento breve (es. "la Rivoluzione francese"), incolla un testo lungo o allega un file (.txt, .md, .pdf, .docx), poi premi un pulsante. Accanto scegli quante domande o carte vuoi.
 - Puoi anche scrivere richieste come "fammi un quiz di 10 domande sulla fotosintesi".
 - Una generazione in corso si ferma con **Annulla**.
-- **Le mie schede**: tutto quello che il tutor crea viene salvato qui. Apri una scheda per leggere il riassunto, fare il quiz (il miglior punteggio viene ricordato) o ripassare le flashcard.
+- **Le mie schede**: tutto quello che Sergio crea viene salvato qui. Apri una scheda per leggere il riassunto, fare il quiz (il miglior punteggio viene ricordato) o ripassare le flashcard.
 - In alto nel pannello vedi se Ollama è attivo e puoi **cambiare modello**.
 
 ## Analizza con l'AI
@@ -57,7 +57,7 @@ Nella pagina **Aggiungi una prova** scrivi titolo e descrizione e premi **Analiz
 - I modelli più grandi sbagliano meno le domande dei quiz, ma sono più lenti.
 
 Per cambiare modello:
-- **Dal pannello del Tutor AI**: il menu accanto allo stato di Ollama elenca i modelli installati. La scelta resta salvata anche dopo il riavvio.
+- **Dal pannello di Sergio**: il menu accanto allo stato di Ollama elenca i modelli installati. La scelta resta salvata anche dopo il riavvio.
 - **Da file**: copia `.env.example` in `.env` e modifica `QUADERNO_MODEL`. La scelta fatta dal pannello ha la precedenza.
 
 Altre impostazioni in `.env`: `OLLAMA_URL`, `QUADERNO_PORT` (porta della pagina, default 8765), `QUADERNO_NUM_CTX` (finestra di contesto, default 8192).
@@ -65,13 +65,13 @@ Altre impostazioni in `.env`: `OLLAMA_URL`, `QUADERNO_PORT` (porta della pagina,
 ## Dove sono i dati
 
 - **Passaporto** (prove, diario, impostazioni): nel browser (`localStorage`). Cancellando i dati del sito tornano quelli di esempio.
-- **Schede del Tutor AI**: nel file `data/quaderno.db` (SQLite) nella cartella del progetto. Restano dopo il riavvio.
+- **Schede di Sergio**: nel file `data/quaderno.db` (SQLite) nella cartella del progetto. Restano dopo il riavvio.
 
 **Backup delle schede**: in *Le mie schede* premi **Esporta** per scaricarle in un file JSON. Con **Importa** le ricarichi, anche su un altro computer; quelle già presenti non vengono duplicate.
 
 ## Risoluzione problemi
 
-**"Il tutor non è collegato"** — Il server non è avviato, o hai aperto `index.html` dal file. Avvia l'app con lo script e apri <http://localhost:8765>.
+**"Sergio non è collegato"** — Il server non è avviato, o hai aperto `index.html` dal file. Avvia l'app con lo script e apri <http://localhost:8765>.
 
 **"Ollama non risponde"** — Apri l'app Ollama oppure esegui `ollama serve`, poi premi **Riprova** nel pannello. Le schede salvate restano consultabili.
 
@@ -95,7 +95,7 @@ python3 -m venv .venv
 ```
 
 Struttura:
-- `web/` — frontend senza build step. `index.html`, `app.js`, `data.js`, `ui.js`, `pages*.js`, `styles.css` sono Talent Passport; `tutor.js` e `tutor.css` sono il pannello del Tutor AI; `vendor/` contiene `marked` e `DOMPurify` serviti in locale.
+- `web/` — frontend senza build step. `index.html`, `app.js`, `data.js`, `ui.js`, `pages*.js`, `styles.css` sono Talent Passport; `tutor.js` e `tutor.css` sono il pannello di Sergio, il tutor AI; `vendor/` contiene `marked` e `DOMPurify` serviti in locale.
 - `app/` — backend FastAPI: client Ollama, generatori di riassunti/quiz/flashcard con validazione e chunking, analisi delle prove (`analyze.py`, `POST /api/analyze`), SQLite, API sotto `/api`.
 - `tests/` — test `pytest` con un client Ollama finto.
 - `scripts/` — avvio per macOS/Linux e Windows.

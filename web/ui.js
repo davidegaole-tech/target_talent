@@ -79,7 +79,7 @@ function sidebarHTML(){
   <nav class="nav">
     ${nav.map(n=>'<a class="nav-item '+(state.route===n.r?'on':'')+'" href="#/'+n.r+'" data-route="'+n.r+'">'+icon(n.i,17)+'<span>'+n.l+'</span></a>').join('')}
   </nav>
-  <div class="side-foot">Prototipo demo<br/>Dati di esempio · Tutor AI locale<br/>GDPR: dati fittizi</div>`;
+  <div class="side-foot">Prototipo demo<br/>Dati di esempio · Sergio, AI locale<br/>GDPR: dati fittizi</div>`;
 }
 function topbarHTML(){
   const meta={
@@ -118,5 +118,5 @@ function renderMascot(){
   const list=Object.keys(tips).includes(state.mascotMood)?tips[state.mascotMood]:tips.felice;
   const tip=list[Math.floor(Math.random()*list.length)];
   const mood=state.mascotMood==='curioso'?'🤔':'😊';
-  m.innerHTML='<div class="mascot-bubble">'+tip+'</div><div class="mascot-panda" title="Panda studioso · apri il tutor AI" onclick="toggleTutor()">'+mood+'</div>';
+  m.innerHTML='<div class="mascot-bubble">'+tip+'</div><div class="mascot-panda" title="Parla con Sergio" onclick="toggleTutor()">'+mood+'</div>';
 }

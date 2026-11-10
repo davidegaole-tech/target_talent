@@ -1,4 +1,4 @@
-/* Tutor AI: pannello che si apre dalla mascotte. Usa solo i token di Talent Radar (styles.css). */
+/* Sergio, il tutor AI: pannello che si apre dalla mascotte. Usa solo i token di Talent Radar (styles.css). */
 .tt-panel{--tt-sum:#10b981;--tt-sum-soft:#e7f8f1;--tt-quiz:#f59e0b;--tt-quiz-soft:#fef5e4;--tt-card:#8b5cf6;--tt-card-soft:#f2ecfe;
   position:fixed;right:16px;bottom:84px;z-index:70;width:400px;max-width:calc(100vw - 32px);height:min(620px,calc(100vh - 110px));
   background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 20px 50px rgba(15,23,42,.18);
@@ -151,3 +151,5 @@ body.tt-open .mascot-bubble{display:none}
 }
 @media(prefers-reduced-motion:reduce){.tt-fc,.tt-tile,.tt-bar i{transition:none}.tt-bar i.indet{animation:none}}
 @media print{.tt-panel,.tt-viewer{display:none!important}}
+/* Generazione in corso: comandi attenuati ma cliccabili (al clic spiegano perché aspettare) */
+.tt-panel.tt-busy .tt-chip,.tt-panel.tt-busy .tt-send{opacity:.5}

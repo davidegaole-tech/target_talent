@@ -167,7 +167,7 @@ function renderAnalisi(res){
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${chips}</div>
     <p style="font-size:12.5px;color:var(--text);line-height:1.55"><strong>Perché:</strong> ${res.perche}.</p>
     <div style="margin-top:10px;font-size:11.5px;color:#6b7280">Segnali rilevati: ${seg}</div>
-    <div class="ai-source">${res.fonte==='modello'?'Analisi del modello locale · '+res.modello:res.fonte==='simulata'?'Analisi simulata: '+res.motivo+'. Avvia il tutor per usare il modello vero.':''}</div>
+    <div class="ai-source">${res.fonte==='modello'?'Analisi del modello locale · '+res.modello:res.fonte==='simulata'?'Analisi simulata: '+res.motivo+'. Avvia Sergio per usare il modello vero.':''}</div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn primary" data-action="conferma">Aggiungi al Passaporto ${icon('check',14)}</button>

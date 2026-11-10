@@ -48,7 +48,7 @@ if ! curl -sf "$OLLAMA_URL/api/tags" | grep -q "\"name\":\"$QUADERNO_MODEL\""; t
   read -r -p "Vuoi scaricarlo adesso? Può pesare diversi GB [s/N] " ans
   case "$ans" in
     [sSyY]*) ollama pull "$QUADERNO_MODEL" ;;
-    *) echo "Va bene: potrai scegliere un altro modello installato dal menu del Tutor AI (clicca la mascotte in basso a destra)." ;;
+    *) echo "Va bene: potrai scegliere un altro modello installato dal menu di Sergio (clicca la mascotte in basso a destra)." ;;
   esac
 fi
 
