@@ -12,11 +12,15 @@ from .ollama_client import Message
 from .schemas import (
     ANALYSIS_TYPES,
     COMPETENCES,
+    DOCUMENT_KINDS,
     REASON_MAX,
     SIGNAL_MAX,
+    SUGGESTION_MAX,
     AnalysisOut,
     analysis_schema,
 )
+
+DOC_TEXT_MAX = 3000
 
 MAX_COMPETENCES = 2
 ANALYSIS_FAILED_MSG = "Il modello non è riuscito ad analizzare la prova. Riprova o scegli un modello più grande."
@@ -52,7 +56,14 @@ def keep_signals(signals: list[str], source: str) -> list[str]:
     return out[:5]
 
 
-def validate_analysis(data: Any, source: str = "") -> dict[str, Any]:
+def clean_suggestion(text: str | None) -> str:
+    s = strip_inline_md(text or "").strip().strip('"«»“”').strip()
+    if len(s) > SUGGESTION_MAX:
+        s = s[:SUGGESTION_MAX].rsplit(" ", 1)[0].rstrip(",;:") + "…"
+    return s
+
+
+def validate_analysis(data: Any, source: str = "", with_suggestion: bool = False) -> dict[str, Any]:
     try:
         out = AnalysisOut.model_validate(data)
     except ValidationError as e:
@@ -68,28 +79,52 @@ def validate_analysis(data: Any, source: str = "") -> dict[str, Any]:
     if len(reason) < 3:
         raise RuleError("il campo reason è vuoto")
     signals = keep_signals(out.signals, source)
-    return {"comp": comps, "perche": reason, "segnali": signals, "conf": confidence(comps[0]["p"])}
+    result: dict[str, Any] = {"comp": comps, "perche": reason, "segnali": signals, "conf": confidence(comps[0]["p"])}
+    if with_suggestion:
+        suggestion = clean_suggestion(out.suggestion)
+        if len(suggestion) < 10:
+            raise RuleError("il campo suggestion è vuoto o troppo corto")
+        result["suggerimento"] = suggestion
+    return result
 
 
-def build_analysis_messages(title: str, description: str, kind: str | None) -> list[Message]:
+def build_analysis_messages(title: str, description: str, kind: str | None,
+                            with_suggestion: bool = False) -> list[Message]:
     comp_list = "\n".join(f"- {cid}: {desc}" for cid, desc in COMPETENCES.items())
+    if kind in DOCUMENT_KINDS:
+        kind_label = f"documento: {DOCUMENT_KINDS[kind]}"
+    else:
+        kind_label = kind if kind in ANALYSIS_TYPES else "testo"
     user = prompts.ANALYZE.format(
         competences=comp_list,
-        kind=kind if kind in ANALYSIS_TYPES else "testo",
+        kind=kind_label,
         title=title.strip(),
         description=description.strip() or "(nessuna descrizione)",
     )
+    if with_suggestion:
+        user += prompts.ANALYZE_SUGGESTION
     return [{"role": "system", "content": prompts.ANALYZE_SYSTEM}, {"role": "user", "content": user}]
 
 
-async def analyze(ctx: GenContext, title: str, description: str, kind: str | None) -> dict[str, Any]:
+async def analyze(ctx: GenContext, title: str, description: str, kind: str | None,
+                  with_suggestion: bool = False) -> dict[str, Any]:
     if not title.strip():
         raise AppError("missing_input", "Dai un titolo alla prova.", 400)
-    messages = build_analysis_messages(title, description, kind)
+    messages = build_analysis_messages(title, description, kind, with_suggestion)
     try:
         source = f"{title} {description}"
-        return await structured_call(ctx, messages, analysis_schema(), lambda d: validate_analysis(d, source))
+        return await structured_call(ctx, messages, analysis_schema(with_suggestion),
+                                     lambda d: validate_analysis(d, source, with_suggestion))
     except AppError as e:
         if e.code == "generation_failed":
             raise AppError("analysis_failed", ANALYSIS_FAILED_MSG, 422) from e
         raise
+
+
+def document_description(note: str | None, text: str | None) -> str:
+    """Descrizione da analizzare: nota dello studente più un estratto del testo del documento."""
+    parts = [note.strip()] if note and note.strip() else []
+    if text and text.strip():
+        excerpt = text.strip()[:DOC_TEXT_MAX]
+        parts.append(f"Testo del documento (estratto):\n{excerpt}")
+    return "\n\n".join(parts)

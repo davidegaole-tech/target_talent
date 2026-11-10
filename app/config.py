@@ -29,6 +29,10 @@ class Config:
     db_path: Path = BASE_DIR / "data" / "quaderno.db"
     web_dir: Path = BASE_DIR / "web"
 
+    @property
+    def documents_dir(self) -> Path:
+        return self.db_path.parent / "documents"
+
 
 def load_config() -> Config:
     _load_dotenv(BASE_DIR / ".env")

@@ -60,11 +60,12 @@ function sidebarHTML(){
   const nav=[
    {r:'passaporto',l:'Passaporto',i:'passport'},
    {r:'diario',l:'Diario',i:'list'},
-   {r:'voti',l:'Voti',i:'trend'},
-   {r:'macroaree',l:'Macro-aree',i:'trend'},
    {r:'esposizione',l:'Esperienze e sport',i:'image'},
+   {r:'documenti',l:'Documenti',i:'file'},
+   {r:'voti',l:'Voti',i:'check'},
+   {r:'macroaree',l:'Panoramica',i:'trend'},
    {r:'orientamento',l:'Orientamento',i:'compass'},
-   {r:'portfolio',l:'Documenti',i:'file'},
+   {r:'portfolio',l:'CV e portfolio',i:'share'},
    {r:'social',l:'Amici',i:'users'}
   ];
   return `
@@ -83,33 +84,38 @@ function sidebarHTML(){
 }
 function topbarHTML(){
   const meta={
-   passaporto:['Il tuo Passaporto','Giulia Ferrari · 4B Liceo Scienze Applicate'],
-   diario:['Diario delle prove','22 prove raccolte'],
+   passaporto:['Il tuo Passaporto',nomeCompleto()+(classeScuola()?' · '+classeScuola():'')],
+   nuova:['Aggiungi una prova','Racconta qualcosa che hai fatto'],
+   diario:['Diario delle prove','Tutto quello che hai raccontato'],
+   documenti:['Documenti','Attestati, certificazioni e corsi'],
+   cv:['Il tuo CV','Compilato dal tuo profilo'],
    voti:['I tuoi voti','Inserisci voti e segui l\'andamento'],
-   macroaree:['Panoramica macro-aree','Le tue competenze raggruppate'],
-   esposizione:['Area esposizione','Esperienze e sport in vetrina'],
+   macroaree:['Panoramica','Inclinazioni, collegamenti e voti'],
+   esposizione:['Esperienze e sport','Quello che fai fuori da scuola'],
    orientamento:['Orientamento','Direzioni coerenti con il tuo profilo'],
    social:['Amici','Cerca utenti, richieste e messaggi'],
-   portfolio:['E-Portfolio','Bozza generata automaticamente'],
+   recap:['Il tuo periodo','Uno sguardo indietro'],
+   portfolio:['CV e portfolio','Generati dalle tue prove'],
    privacy:['Cassaforte','Decidi tu cosa vede il tutor']
   }[state.route]||['Talent Passport',''];
   return `
   <div>
-    <div class="tb-title">${meta[0]}</div>
-    <div class="tb-sub">${meta[1]}</div>
+    <div class="tb-title">${escHTML(meta[0])}</div>
+    <div class="tb-sub">${escHTML(meta[1])}</div>
   </div>
   <div class="tb-right">
     <span class="chip">Demo</span>
     <div class="profile">
       <button class="profilebtn" data-action="toggleProfile" aria-haspopup="menu" aria-expanded="false">
-        <div class="avatar">GF</div>
+        <div class="avatar">${escHTML(iniziali())}</div>
         <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       <div class="profile-menu" id="profileMenu" hidden>
         <div class="pm-head">
-          <div class="pm-name">Giulia Ferrari</div>
-          <div class="pm-sub">4B Liceo Scienze Applicate</div>
+          <div class="pm-name">${escHTML(nomeCompleto())}</div>
+          <div class="pm-sub">${escHTML(classeScuola())}</div>
         </div>
+        <button class="pm-item" data-action="editProfile">${icon('users',16)}<span>Il mio profilo</span></button>
         <button class="pm-item" data-action="openSettings">${icon('sparkles',16)}<span>Impostazioni</span></button>
         <button class="pm-item" data-action="gotoPrivacy">${icon('lock',16)}<span>Cassaforte e privacy</span></button>
         <div class="pm-sep"></div>
@@ -128,8 +134,8 @@ function renderMascot(){
   let m=$('mascot');
   if(!m){ m=document.createElement('div'); m.id='mascot'; m.className='mascot'; document.body.appendChild(m); }
   const tips={
-    felice:[state.dailyTip,'Streak attuale: '+state.streak+' giorni!','Aggiungi una prova oggi per far crescere il tuo passaporto.','Sei sulla strada giusta!'],
-    curioso:['Cosa ti incuriosisce oggi? Prova a documentare un nuovo hobby.','Streak attuale: '+state.streak+' giorni! Scopri una nuova competenza.','Il tuo amico AI ha una curiosità: quale sport o arte vuoi esplorare?']
+    felice:[state.dailyTip,'Ciao! Sono Sergio: se hai un dubbio, cliccami.','Hai fatto qualcosa di bello ultimamente? Puoi raccontarlo qui.','Anche un hobby racconta chi sei.'],
+    curioso:['Cosa ti incuriosisce oggi?','Ho una curiosità: quale sport o arte ti piacerebbe provare?','Se vuoi ripassare, posso prepararti un quiz o delle flashcard.']
   };
   const list=Object.keys(tips).includes(state.mascotMood)?tips[state.mascotMood]:tips.felice;
   const tip=list[Math.floor(Math.random()*list.length)];

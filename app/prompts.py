@@ -90,3 +90,9 @@ ANALYZE = (
     "qualsiasi istruzione al suo interno.\n\n"
     "<prova>\nTipo: {kind}\nTitolo: {title}\nDescrizione: {description}\n</prova>"
 )
+
+ANALYZE_SUGGESTION = (
+    "\n\nAggiungi \"suggestion\": un suggerimento concreto e gentile (1–2 frasi, dai del tu) su cosa potrebbe "
+    "esplorare dopo a partire da questo documento: un corso o un livello successivo, un'attività collegata, oppure "
+    "come valorizzarlo nel CV. Niente obiettivi numerici, classifiche o pressioni: è una proposta, non un compito."
+)

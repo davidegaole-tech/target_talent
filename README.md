@@ -37,6 +37,17 @@ Clicca la mascotte in basso a destra per aprire il pannello (si chiude con × o 
 - **Le mie schede**: tutto quello che Sergio crea viene salvato qui. Apri una scheda per leggere il riassunto, fare il quiz (il miglior punteggio viene ricordato) o ripassare le flashcard.
 - In alto nel pannello vedi se Ollama è attivo e puoi **cambiare modello**.
 
+## Le sezioni
+
+- **Passaporto**: il tuo spazio, senza percentuali né obiettivi da raggiungere.
+- **Diario**: tutto quello che hai raccontato, a scuola e fuori, compresi i documenti aggiunti. Su ogni prova puoi premere **Correggi le competenze** e scegliere tu.
+- **Esperienze e sport**: solo quello che fai fuori da scuola (hobby, sport, volontariato). Quando aggiungi una prova scegli *A scuola* o *Fuori da scuola*.
+- **Documenti**: carichi attestati, certificazioni e corsi (PDF, DOCX, TXT, JPG, PNG, massimo 10 MB). Sergio li legge, dice quali competenze mostrano e suggerisce come andare avanti; poi puoi aggiungerli al diario.
+- **Voti**: i voti per materia, che Sergio usa anche quando gli chiedi un consiglio.
+- **Panoramica**: per chi vuole i numeri, cioè competenze per macro-area, come si collegano tra loro e cosa dicono i voti.
+- **Orientamento**: direzioni da esplorare con una spiegazione e il pulsante **Chiedi a Sergio**.
+- **CV e portfolio**: il CV si compila dal tuo profilo (menu in alto a destra → **Il mio profilo**), dalle esperienze e dai documenti.
+
 ## Analizza con l'AI
 
 Nella pagina **Aggiungi una prova** scrivi titolo e descrizione e premi **Analizza con l'AI**. Il modello sceglie le 1–2 competenze chiave europee che la prova dimostra meglio, con una percentuale, il *perché* e i *segnali*: parole prese dal tuo testo che giustificano la scelta. Puoi poi aggiungere la prova al passaporto.
@@ -65,7 +76,8 @@ Altre impostazioni in `.env`: `OLLAMA_URL`, `QUADERNO_PORT` (porta della pagina,
 ## Dove sono i dati
 
 - **Passaporto** (prove, diario, impostazioni): nel browser (`localStorage`). Cancellando i dati del sito tornano quelli di esempio.
-- **Schede di Sergio**: nel file `data/quaderno.db` (SQLite) nella cartella del progetto. Restano dopo il riavvio.
+- **Schede di Sergio e documenti**: nel file `data/quaderno.db` (SQLite) nella cartella del progetto; i file dei documenti in `data/documents/`. Restano dopo il riavvio.
+- **Profilo e voti**: nel browser, insieme al passaporto.
 
 **Backup delle schede**: in *Le mie schede* premi **Esporta** per scaricarle in un file JSON. Con **Importa** le ricarichi, anche su un altro computer; quelle già presenti non vengono duplicate.
 
@@ -95,7 +107,7 @@ python3 -m venv .venv
 ```
 
 Struttura:
-- `web/` — frontend senza build step. `index.html`, `app.js`, `data.js`, `ui.js`, `pages*.js`, `styles.css` sono Talent Passport; `tutor.js` e `tutor.css` sono il pannello di Sergio, il tutor AI; `vendor/` contiene `marked` e `DOMPurify` serviti in locale.
-- `app/` — backend FastAPI: client Ollama, generatori di riassunti/quiz/flashcard con validazione e chunking, analisi delle prove (`analyze.py`, `POST /api/analyze`), SQLite, API sotto `/api`.
+- `web/` — frontend senza build step. `index.html`, `app.js`, `data.js`, `ui.js`, `pages*.js`, `styles.css` sono Talent Passport; `documenti.js` è la sezione Documenti; `tutor.js` e `tutor.css` sono il pannello di Sergio, il tutor AI; `vendor/` contiene `marked` e `DOMPurify` serviti in locale.
+- `app/` — backend FastAPI: client Ollama, generatori di riassunti/quiz/flashcard con validazione e chunking, analisi delle prove (`analyze.py`, `POST /api/analyze`), archivio documenti (`/api/documents`), SQLite, API sotto `/api`.
 - `tests/` — test `pytest` con un client Ollama finto.
 - `scripts/` — avvio per macOS/Linux e Windows.

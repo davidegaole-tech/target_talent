@@ -52,16 +52,22 @@ const state = {
   route:'passaporto',
   prove:{alfabetica:4,multilingue:2,stem:6,digitale:7,personale:5,cittadinanza:2,imprenditoriale:3,cultura:2},
   evidences:[
-   {id:'e1',titolo:'Robot per la gara regionale',tipo:'foto',data:'2026-11-06',descrizione:'Con il gruppo di laboratorio ho montato e programmato un robot con Arduino. Io ho gestito i sensori e i test.',comp:['stem','digitale'],dims:['fare','lavorare'],conf:'alta',perche:'Progettazione tecnica, programmazione e lavoro di squadra su un obiettivo concreto.'},
-   {id:'e2',titolo:'Volontaria alla biblioteca di quartiere',tipo:'testo',data:'2026-11-02',descrizione:'Due pomeriggi al mese aiuto a catalogare i libri e a leggere ai bambini delle elementari.',comp:['cittadinanza','personale'],dims:['essere'],conf:'alta',perche:'Impegno civico continuativo e responsabilità verso gli altri.'},
-   {id:'e3',titolo:'Podcast in inglese con studenti spagnoli',tipo:'link',data:'2026-10-27',descrizione:'Episodio di 12 minuti registrato con una classe di Valencia sul tema del clima. Ho scritto la scaletta e montato l\'audio.',comp:['multilingue','digitale'],dims:['fare','lavorare'],conf:'alta',perche:'Uso reale di una lingua straniera e produzione audio digitale.'},
-   {id:'e4',titolo:'Mercatino solidale di Natale',tipo:'foto',data:'2026-10-20',descrizione:'Ho coordinato un gruppo di 6 persone: budget, contatti con i negozi, turni e comunicazione sui social.',comp:['imprenditoriale','personale'],dims:['lavorare','essere'],conf:'alta',perche:'Iniziativa, gestione di un budget e coordinamento di un gruppo.'},
-   {id:'e5',titolo:'Recensione di "La coscienza di Zeno"',tipo:'testo',data:'2026-10-14',descrizione:'Recensione di 900 parole pubblicata sul giornalino scolastico.',comp:['alfabetica'],dims:['fare'],conf:'media',perche:'Produzione di un testo argomentativo destinato a un pubblico reale.'},
-   {id:'e6',titolo:'Locandina per la mostra fotografica',tipo:'foto',data:'2026-10-08',descrizione:'Ho progettato la locandina della mostra della classe usando Photoshop e i colori della scuola.',comp:['cultura','digitale'],dims:['essere','lavorare'],conf:'alta',perche:'Alfabetizzazione visiva e uso consapevole di strumenti di design.'},
-   {id:'e7',titolo:'Capitana della squadra di pallavolo',tipo:'testo',data:'2026-09-30',descrizione:'Gestisco gli allenamenti quando l\'allenatore è assente e tengo i rapporti con le altre squadre.',comp:['personale','cittadinanza'],dims:['essere'],conf:'media',perche:'Leadership, costanza e gestione delle relazioni.'}
+   {id:'e1',ambito:'scuola',titolo:'Robot per la gara regionale',tipo:'foto',data:'2026-11-06',descrizione:'Con il gruppo di laboratorio ho montato e programmato un robot con Arduino. Io ho gestito i sensori e i test.',comp:['stem','digitale'],dims:['fare','lavorare'],conf:'alta',perche:'Progettazione tecnica, programmazione e lavoro di squadra su un obiettivo concreto.'},
+   {id:'e2',ambito:'extra',titolo:'Volontaria alla biblioteca di quartiere',tipo:'testo',data:'2026-11-02',descrizione:'Due pomeriggi al mese aiuto a catalogare i libri e a leggere ai bambini delle elementari.',comp:['cittadinanza','personale'],dims:['essere'],conf:'alta',perche:'Impegno civico continuativo e responsabilità verso gli altri.'},
+   {id:'e3',ambito:'scuola',titolo:'Podcast in inglese con studenti spagnoli',tipo:'link',data:'2026-10-27',descrizione:'Episodio di 12 minuti registrato con una classe di Valencia sul tema del clima. Ho scritto la scaletta e montato l\'audio.',comp:['multilingue','digitale'],dims:['fare','lavorare'],conf:'alta',perche:'Uso reale di una lingua straniera e produzione audio digitale.'},
+   {id:'e4',ambito:'extra',titolo:'Mercatino solidale di Natale',tipo:'foto',data:'2026-10-20',descrizione:'Ho coordinato un gruppo di 6 persone: budget, contatti con i negozi, turni e comunicazione sui social.',comp:['imprenditoriale','personale'],dims:['lavorare','essere'],conf:'alta',perche:'Iniziativa, gestione di un budget e coordinamento di un gruppo.'},
+   {id:'e5',ambito:'scuola',titolo:'Recensione di "La coscienza di Zeno"',tipo:'testo',data:'2026-10-14',descrizione:'Recensione di 900 parole pubblicata sul giornalino scolastico.',comp:['alfabetica'],dims:['fare'],conf:'media',perche:'Produzione di un testo argomentativo destinato a un pubblico reale.'},
+   {id:'e6',ambito:'scuola',titolo:'Locandina per la mostra fotografica',tipo:'foto',data:'2026-10-08',descrizione:'Ho progettato la locandina della mostra della classe usando Photoshop e i colori della scuola.',comp:['cultura','digitale'],dims:['essere','lavorare'],conf:'alta',perche:'Alfabetizzazione visiva e uso consapevole di strumenti di design.'},
+   {id:'e7',ambito:'extra',titolo:'Capitana della squadra di pallavolo',tipo:'testo',data:'2026-09-30',descrizione:'Gestisco gli allenamenti quando l\'allenatore è assente e tengo i rapporti con le altre squadre.',comp:['personale','cittadinanza'],dims:['essere'],conf:'media',perche:'Leadership, costanza e gestione delle relazioni.'}
   ],
   pending:null,
   prefill:null,
+  profilo:{
+   nome:'Giulia', cognome:'Ferrari', nascita:'2009-03-14', citta:'Bologna', email:'', telefono:'',
+   scuola:'Liceo Scientifico opzione Scienze Applicate', classe:'4B', anno:'2026/27',
+   presentazione:'', lingue:'Italiano (madrelingua); Inglese (B2); Spagnolo (A2)',
+   digitali:'Arduino, Python di base, Photoshop, Audacity', interessi:'Robotica, pallavolo, fotografia'
+  },
   privacy:{tutor:true,orientatore:false,ai:false,export:true},
   diarioFilter:null,
   radarValues:null,

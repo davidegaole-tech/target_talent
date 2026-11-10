@@ -507,10 +507,10 @@ async function runGenerations(kinds, src, counts) {
   logEl.scrollTop = logEl.scrollHeight;
 }
 
-async function runChat(userText) {
+async function runChat(userText, sentText = userText) {
   setBusy(true);
   controller = new AbortController();
-  history.push({ role: "user", content: userText });
+  history.push({ role: "user", content: sentText });
   const bubble = addMsg("bot", "Sto pensando…", "thinking");
   const stop = document.createElement("div");
   stop.className = "tt-gen"; stop.innerHTML = `<div class="tt-grow"><span></span><button class="tt-gstop">Interrompi</button></div>`;
@@ -627,6 +627,14 @@ $("#ttFile").addEventListener("change", async e => {
   } catch (err) { clearAttach(); say(err.message, true); }
 });
 function clearAttach() { attachedText = ""; attachedName = ""; const a = $("#ttAttached"); a.hidden = true; a.innerHTML = ""; }
+
+/* Domanda da un'altra pagina (es. Orientamento): si vede la domanda, al modello arriva anche il contesto */
+window.askSergio = (question, context = "") => {
+  openTutor(); setTab("chat");
+  if (busy) { busyNotice(); return; }
+  addMsg("user", question);
+  runChat(question, context ? `${context}\n\nDomanda: ${question}` : question);
+};
 
 /* Vecchi link alla pagina #/chat: aprono il pannello */
 function chatHash() { if (location.hash === "#/chat") { location.hash = "#/passaporto"; openTutor(); } }

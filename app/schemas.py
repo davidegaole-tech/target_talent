@@ -177,9 +177,27 @@ class AnalysisOut(BaseModel):
     competences: list[AnalysisCompetence] = Field(min_length=1)
     reason: str = Field(min_length=3)
     signals: list[str] = Field(default_factory=list)
+    suggestion: str | None = None
 
 
-def analysis_schema() -> dict[str, Any]:
+SUGGESTION_MAX = 320
+DOCUMENT_KINDS: dict[str, str] = {
+    "attestato": "attestato di partecipazione",
+    "certificato": "certificazione ufficiale (es. lingua, informatica)",
+    "corso": "corso frequentato",
+    "altro": "altro documento",
+}
+
+
+def analysis_schema(with_suggestion: bool = False) -> dict[str, Any]:
+    schema = _analysis_schema()
+    if with_suggestion:
+        schema["required"].append("suggestion")
+        schema["properties"]["suggestion"] = {"type": "string"}
+    return schema
+
+
+def _analysis_schema() -> dict[str, Any]:
     return {
         "type": "object",
         "required": ["competences", "reason", "signals"],

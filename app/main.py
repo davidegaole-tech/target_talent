@@ -11,7 +11,7 @@ from .config import Config, load_config
 from .db import Database
 from .errors import AppError
 from .ollama_client import LLMClient, OllamaClient
-from .routes import analyze, chat, generate, items, system
+from .routes import analyze, chat, documents, generate, items, system
 from .services import Services
 
 
@@ -46,7 +46,7 @@ def create_app(config: Config | None = None, client: LLMClient | None = None, db
             response.headers.setdefault("Cache-Control", "no-cache")
         return response
 
-    for r in (system.router, items.router, generate.router, chat.router, analyze.router):
+    for r in (system.router, items.router, generate.router, chat.router, analyze.router, documents.router):
         app.include_router(r)
     app.mount("/", StaticFiles(directory=config.web_dir, html=True), name="web")
     return app

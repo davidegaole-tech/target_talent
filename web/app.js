@@ -5,6 +5,7 @@ const ROUTES={
  passaporto:renderPassaporto,
  nuova:renderNuova,
  diario:renderDiario,
+ documenti:renderDocumenti,
  voti:renderVoti,
  macroaree:renderMacroaree,
  esposizione:renderEsposizione,
@@ -46,6 +47,11 @@ document.addEventListener('click',e=>{
   const a=el.dataset.action;
   const v=el.dataset.val;
   if(a==='closeModal'){ closeModal(); return; }
+  if(a==='ambito'){
+    state.pendingAmbito=v;
+    document.querySelectorAll('#ambitoSeg .segbtn').forEach(b=>b.classList.toggle('on',b.dataset.val===v));
+    return;
+  }
   if(a==='tipo'){
     state.pendingType=v;
     document.querySelectorAll('#tipoSeg .segbtn').forEach(b=>b.classList.toggle('on',b.dataset.val===v));
@@ -68,20 +74,27 @@ document.addEventListener('click',e=>{
   if(a==='conferma'){
     if(!state.pending) return;
     const p=state.pending;
-    const ev={id:'e'+Date.now(),titolo:p.titolo,descrizione:p.desc,tipo:p.tipo,data:$('p-data').value||'2026-11-10',comp:p.res.comp.map(c=>c.id),dims:p.res.dims,conf:p.res.conf,perche:p.res.perche,nuovo:true};
+    const ev={id:'e'+Date.now(),ambito:state.pendingAmbito||'scuola',titolo:escHTML(p.titolo),descrizione:escHTML(p.desc),tipo:p.tipo,data:$('p-data').value||'2026-11-10',comp:p.res.comp.map(c=>c.id),dims:p.res.dims,conf:p.res.conf,perche:p.res.perche,corretta:!!p.res.corretta,nuovo:true};
     state.evidences.unshift(ev);
     p.res.comp.forEach(c=>{state.prove[c.id]=(state.prove[c.id]||0)+1;});
-    state.pending=null; state.prefill=null;
-    toast('Prova aggiunta: il tuo stile si è aggiornato');
-    navigate('#/passaporto');
+    state.pending=null; state.prefill=null; state.pendingAmbito=null;
+    toast('Prova aggiunta al tuo diario');
+    navigate(ev.ambito==='extra'?'#/esposizione':'#/diario');
     return;
   }
-  if(a==='correggi'){ toast('Modalità correzione: clicca una competenza per rimuoverla'); return; }
+  if(a==='correggi'){ if(state.pending) openCorreggi('pending'); return; }
+  if(a==='correggiEv'){ openCorreggi(el.dataset.id); return; }
+  if(a==='toggleComp'){ el.classList.toggle('on'); const n=document.querySelectorAll('#corrComp .on').length; const w=$('corrWarn'); if(w) w.hidden=n>0&&n<=3; return; }
+  if(a==='salvaCorrezione'){ salvaCorrezione(el.dataset.id); return; }
   if(a==='mission'){
-    state.prefill={titolo:v,desc:'Sfida accettata: '+v};
+    state.prefill={titolo:v,desc:'',ambito:el.dataset.ambito||null};
+    state.pendingAmbito=el.dataset.ambito||null;
     navigate('#/nuova');
     return;
   }
+  if(a==='askSergio'){ chiediASergio(el.dataset.q||v||''); return; }
+  if(a==='editProfile'){ closeProfile(); openModal(renderProfileEditor()); return; }
+  if(a==='saveProfile'){ salvaProfilo(); return; }
   if(a==='dfilter'){
     state.diarioFilter = v===''?null:v;
     render();
@@ -95,13 +108,13 @@ document.addEventListener('click',e=>{
     openModal(`
       <button class="modal-close" data-action="closeModal">${icon('plus',16)}</button>
       <div style="font-weight:700;font-size:16px;margin-bottom:4px">${e.titolo}</div>
-      <div style="font-size:11.5px;color:var(--muted);margin-bottom:12px">${fmtDate(e.data)} · ${e.tipo} · confidenza ${e.conf}</div>
-      <p style="font-size:13px;color:#374151;line-height:1.6;margin-bottom:12px">${e.descrizione}</p>
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:12px">${fmtDate(e.data)} · ${(e.ambito==='extra'?'fuori da scuola':e.ambito==='doc'?'documento':'a scuola')} · ${e.tipo}</div>
+      <p style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px">${e.descrizione}</p>
       <div style="margin-bottom:8px"><strong style="font-size:12px">Dimensioni:</strong> <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${dimchips}</div></div>
       <div style="margin-bottom:12px"><strong style="font-size:12px">Competenze:</strong> <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${chips}</div></div>
-      <div style="background:#f6f7fb;border-radius:12px;padding:12px 14px;font-size:12.5px;color:#4b5563;line-height:1.55"><strong>Perché l'AI l'ha collegata:</strong> ${e.perche}.</div>
+      <div style="background:var(--surface2);border-radius:12px;padding:12px 14px;font-size:12.5px;color:var(--text2);line-height:1.55"><strong>${e.corretta?'Competenze scelte da te':'Perché l\'AI l\'ha collegata'}:</strong> ${e.perche}.</div>
       <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
-        <button class="btn soft sm" data-action="closeModal">Correggi</button>
+        <button class="btn soft sm" data-action="correggiEv" data-id="${e.id}">Correggi le competenze</button>
         <button class="btn sm" data-action="closeModal">Chiudi</button>
       </div>
     `);
@@ -118,7 +131,7 @@ document.addEventListener('click',e=>{
   if(a==='exportData'){ closeProfile(); toast('Esportazione dati avviata (demo)'); return; }
   if(a==='deleteData'){ closeProfile(); toast('Dati cancellati (demo)'); return; }
   if(a==='stampa'){ window.print(); return; }
-  if(a==='navigateNuova'){ state.prefill=null; navigate('#/nuova'); return; }
+  if(a==='navigateNuova'){ state.prefill=null; state.pending=null; state.pendingAmbito=el.dataset.ambito||null; navigate('#/nuova'); return; }
   if(a==='apriCv'){ navigate('#/cv'); return; }
   if(a==='openSettings'){ closeProfile(); openModal(renderSettings()); return; }
   if(a==='toggleProfile'){ const m=$('profileMenu'); if(m) m.hidden=!m.hidden; return; }
@@ -200,6 +213,86 @@ async function analizzaConAI(titolo,desc,tipo,btn){
   $('analisi').innerHTML=renderAnalisi(res);
 }
 
+/* ---------- Correggi le competenze di una prova (o del risultato dell'analisi) ---------- */
+function openCorreggi(target){
+  const cur=target==='pending'?(state.pending?.res.comp||[]).map(c=>c.id):(state.evidences.find(x=>x.id===target)?.comp||[]);
+  openModal(`
+    <button class="modal-close" data-action="closeModal">✕</button>
+    <div style="font-weight:700;font-size:16px;margin-bottom:4px">Correggi le competenze</div>
+    <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;line-height:1.5">Scegli da 1 a 3 competenze che questa prova racconta davvero. Conta il tuo punto di vista.</div>
+    <div id="corrComp" style="display:flex;gap:8px;flex-wrap:wrap">
+      ${EU.map(c=>`<button class="segbtn comp-toggle ${cur.includes(c.id)?'on':''}" data-action="toggleComp" data-comp="${c.id}" style="--cc:${c.color}">${c.nome}</button>`).join('')}
+    </div>
+    <div id="corrWarn" class="section-sub" style="color:var(--rose);margin-top:10px" hidden>Scegli da 1 a 3 competenze.</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn sm" data-action="closeModal">Annulla</button>
+      <button class="btn primary sm" data-action="salvaCorrezione" data-id="${target}">Salva</button>
+    </div>`);
+}
+function salvaCorrezione(target){
+  const ids=[...document.querySelectorAll('#corrComp .on')].map(b=>b.dataset.comp);
+  if(!ids.length||ids.length>3){ const w=$('corrWarn'); if(w) w.hidden=false; return; }
+  const perche='scelte da te: '+ids.map(id=>EU.find(c=>c.id===id).short).join(', ');
+  if(target==='pending'){
+    const r=state.pending?.res; if(!r) return;
+    r.comp=ids.map(id=>({id,p:(r.comp.find(c=>c.id===id)||{}).p||0.9}));
+    r.dims=dimsOf(ids); r.perche=perche; r.corretta=true; r.segnali=r.segnali||[];
+    closeModal(); const box=$('analisi'); if(box) box.innerHTML=renderAnalisi(r);
+    return;
+  }
+  const e=state.evidences.find(x=>x.id===target); if(!e) return;
+  e.comp.forEach(id=>{ state.prove[id]=Math.max(0,(state.prove[id]||0)-1); });
+  ids.forEach(id=>{ state.prove[id]=(state.prove[id]||0)+1; });
+  e.comp=ids; e.dims=dimsOf(ids); e.perche=perche; e.corretta=true;
+  closeModal(); render(); toast('Competenze aggiornate');
+}
+
+/* ---------- Profilo dello studente (usato da CV, portfolio e intestazioni) ---------- */
+const PROFILE_FIELDS=[
+  ['nome','Nome'],['cognome','Cognome'],['nascita','Data di nascita','date'],['citta','Città'],
+  ['email','Email','email'],['telefono','Telefono','tel'],['scuola','Scuola'],['classe','Classe'],['anno','Anno scolastico'],
+  ['presentazione','Due righe su di te (per il CV)','area'],['lingue','Lingue e livelli','area'],
+  ['digitali','Competenze digitali (strumenti, programmi)','area'],['interessi','Interessi e hobby','area']
+];
+function renderProfileEditor(){
+  const p=state.profilo;
+  const field=([k,l,t])=>t==='area'
+    ?`<div class="form-row"><label for="pf-${k}">${l}</label><textarea id="pf-${k}" rows="2">${escHTML(p[k]||'')}</textarea></div>`
+    :`<div class="form-row"><label for="pf-${k}">${l}</label><input id="pf-${k}" type="${t||'text'}" value="${escHTML(p[k]||'')}"/></div>`;
+  return `
+    <button class="modal-close" data-action="closeModal">✕</button>
+    <div style="font-weight:700;font-size:16px;margin-bottom:4px">Il mio profilo</div>
+    <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px">Questi dati servono a compilare il CV in automatico. Restano solo su questo dispositivo.</div>
+    <div class="profile-grid">${PROFILE_FIELDS.map(field).join('')}</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px">
+      <button class="btn sm" data-action="closeModal">Annulla</button>
+      <button class="btn primary sm" data-action="saveProfile">Salva</button>
+    </div>`;
+}
+function salvaProfilo(){
+  PROFILE_FIELDS.forEach(([k])=>{ const el=$('pf-'+k); if(el) state.profilo[k]=el.value.trim(); });
+  closeModal(); render(); toast('Profilo salvato');
+}
+function nomeCompleto(){ const p=state.profilo; return [p.nome,p.cognome].filter(Boolean).join(' ')||'Il tuo nome'; }
+function iniziali(){ const p=state.profilo; return ((p.nome||'?')[0]+((p.cognome||'')[0]||'')).toUpperCase(); }
+function classeScuola(){ const p=state.profilo; return [p.classe,p.scuola].filter(Boolean).join(' · '); }
+
+/* ---------- "Chiedi a Sergio": domanda con il contesto del profilo (prove, voti) ---------- */
+function contestoProfilo(){
+  const comp=topComp(3).map(c=>c.nome).join(', ');
+  const prove=state.evidences.slice(0,8).map(e=>'- '+e.titolo.replace(/&[a-z#0-9]+;/g,' ')+' ('+(e.ambito==='extra'?'fuori da scuola':'a scuola')+')').join('\n');
+  const voti=state.materie.map(m=>{const md=mediaVoti(m.voti);return md!=null?m.nome+' '+md:null;}).filter(Boolean).join(', ');
+  return 'Contesto sul mio profilo (non ripeterlo, usalo solo se serve):\n'
+    +'Classe: '+(classeScuola()||'non indicata')+'\n'
+    +'Competenze più raccontate: '+comp+'\n'
+    +(voti?'Medie dei voti: '+voti+'\n':'')
+    +'Alcune mie prove:\n'+prove;
+}
+function chiediASergio(domanda){
+  if(!window.askSergio){ toast('Sergio non è disponibile: avvia l\'app con scripts/start.sh'); return; }
+  window.askSergio(domanda, contestoProfilo());
+}
+
 // init
 if(!location.hash) location.hash='#/passaporto';
 state.route=location.hash.replace('#/','')||'passaporto';
@@ -209,7 +302,8 @@ function saveState(){
     localStorage.setItem('talent_state', JSON.stringify({
       prove:state.prove, evidences:state.evidences, diarioFilter:state.diarioFilter,
       privacy:state.privacy, dailyTip:state.dailyTip, mascotMood:state.mascotMood,
-      theme:state.theme, streak:state.streak, reduceMotion:state.reduceMotion, textSize:state.textSize
+      theme:state.theme, streak:state.streak, reduceMotion:state.reduceMotion, textSize:state.textSize,
+      materie:state.materie, profilo:state.profilo
     }));
   }catch(e){}
 }
@@ -228,6 +322,11 @@ function loadState(){
       state.streak=p.streak||state.streak;
       state.reduceMotion=!!p.reduceMotion;
       state.textSize=p.textSize||'normale';
+      if(Array.isArray(p.materie)) state.materie=p.materie;
+      if(p.profilo) state.profilo={...state.profilo,...p.profilo};
+      // Prove salvate prima che esistesse l'ambito: quelle note fuori da scuola, le altre a scuola
+      const extra=['e2','e4','e7'];
+      state.evidences.forEach(e=>{ if(!e.ambito) e.ambito=extra.includes(e.id)?'extra':'scuola'; });
     }
   }catch(e){}
 }

@@ -21,7 +21,22 @@ CREATE TABLE IF NOT EXISTS items (
 );
 CREATE INDEX IF NOT EXISTS idx_items_created ON items(created_at DESC);
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS documents (
+  id          TEXT PRIMARY KEY,
+  title       TEXT NOT NULL,
+  kind        TEXT NOT NULL,
+  date        TEXT,
+  note        TEXT,
+  filename    TEXT NOT NULL,
+  mime        TEXT NOT NULL,
+  size        INTEGER NOT NULL,
+  text        TEXT,                 -- testo estratto (se il formato lo permette)
+  analysis    TEXT,                 -- JSON dell'analisi AI, se fatta
+  created_at  INTEGER NOT NULL
+);
 """
+
+DOC_PUBLIC = "id, title, kind, date, note, filename, mime, size, analysis, created_at, (text IS NOT NULL) AS has_text"
 
 ITEM_TYPES = ("summary", "quiz", "flashcards")
 
@@ -100,6 +115,48 @@ class Database:
 
     def item_exists(self, item_id: str) -> bool:
         return self.conn.execute("SELECT 1 FROM items WHERE id = ?", (item_id,)).fetchone() is not None
+
+    # --- documents ---
+    @staticmethod
+    def _doc(row: sqlite3.Row | None) -> dict[str, Any] | None:
+        if row is None:
+            return None
+        doc = dict(row)
+        doc["analysis"] = json.loads(doc["analysis"]) if doc.get("analysis") else None
+        if "has_text" in doc:
+            doc["has_text"] = bool(doc["has_text"])
+        return doc
+
+    def list_documents(self) -> list[dict[str, Any]]:
+        rows = self.conn.execute(f"SELECT {DOC_PUBLIC} FROM documents ORDER BY COALESCE(date, '') DESC, created_at DESC")
+        return [d for r in rows if (d := self._doc(r))]
+
+    def get_document(self, doc_id: str, with_text: bool = False) -> dict[str, Any] | None:
+        cols = "*" if with_text else DOC_PUBLIC
+        return self._doc(self.conn.execute(f"SELECT {cols} FROM documents WHERE id = ?", (doc_id,)).fetchone())
+
+    def create_document(self, doc_id: str, title: str, kind: str, date: str | None, note: str | None,
+                        filename: str, mime: str, size: int, text: str | None) -> dict[str, Any]:
+        self.conn.execute(
+            "INSERT INTO documents (id, title, kind, date, note, filename, mime, size, text, created_at)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (doc_id, title, kind, date, note, filename, mime, size, text, int(time.time() * 1000)),
+        )
+        self.conn.commit()
+        doc = self.get_document(doc_id)
+        assert doc is not None
+        return doc
+
+    def set_document_analysis(self, doc_id: str, analysis: dict[str, Any]) -> dict[str, Any] | None:
+        self.conn.execute("UPDATE documents SET analysis = ? WHERE id = ?",
+                          (json.dumps(analysis, ensure_ascii=False), doc_id))
+        self.conn.commit()
+        return self.get_document(doc_id)
+
+    def delete_document(self, doc_id: str) -> bool:
+        cur = self.conn.execute("DELETE FROM documents WHERE id = ?", (doc_id,))
+        self.conn.commit()
+        return cur.rowcount > 0
 
     # --- settings ---
     def get_setting(self, key: str) -> str | None:
