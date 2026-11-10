@@ -120,25 +120,6 @@ function renderRecap(){
     <button class="btn soft sm" style="margin-top:10px" data-action="mission" data-val="segui la guida giornaliera">Segui il consiglio</button>
   </div>`;
 }
-function renderChat(){
-  const history=state.chatHistory||[];
-  return `
-  <div class="hero">
-    <div>
-      <h1>Assistente AI</h1>
-      <p>Fai domande sul tuo profilo, le competenze o i percorsi.</p>
-    </div>
-  </div>
-  <div class="card" style="min-height:360px;display:flex;flex-direction:column">
-    <div id="chatLog" style="flex:1;overflow:auto;padding:10px 4px">
-      ${history.map(m=>'<div style="margin-bottom:10px;display:flex;'+(m.role==='user'?'justify-content:flex-end':'')+'"><div style="max-width:78%;padding:10px 12px;border-radius:12px;background:'+(m.role==='user'?'var(--accent)':'var(--soft)')+';color:'+(m.role==='user'?'#fff':'var(--text)')+';font-size:13px;line-height:1.5">'+m.text+'</div></div>').join('')}
-    </div>
-    <div style="display:flex;gap:8px;margin-top:10px">
-      <input id="chatInput" placeholder="Scrivi un messaggio..." style="flex:1;border:1px solid var(--line);border-radius:10px;padding:10px 12px"/>
-      <button class="btn primary" data-action="sendChat">Invia</button>
-    </div>
-  </div>`;
-}
 function renderSocial(){
   const tab=state.socialTab||'search';
   const tabs=[['search','Cerca utenti'],['requests','Richieste'],['messages','Messaggi']];

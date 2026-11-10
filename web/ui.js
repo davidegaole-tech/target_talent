@@ -3,7 +3,7 @@ function $(id){return document.getElementById(id);}
 function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('on');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('on'),2800);}
 function openModal(html){const r=$('modalRoot');r.innerHTML='<div class="modal-backdrop" data-action="closeModal"></div><div class="modal-card">'+html+'</div>';r.classList.add('on');}
 function closeModal(){const r=$('modalRoot');r.classList.remove('on');r.innerHTML='';}
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal(); if(e.target && (e.target.id==='chatInput'||e.target.id==='msgInput') && e.key==='Enter'){ e.preventDefault(); const b=e.target.id==='chatInput'?document.querySelector('[data-action="sendChat"]'):document.querySelector('[data-action="sendMessage"]'); if(b) b.click(); }});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal(); if(e.target && e.target.id==='msgInput' && e.key==='Enter'){ e.preventDefault(); const b=document.querySelector('[data-action="sendMessage"]'); if(b) b.click(); }});
 document.addEventListener('input',e=>{
   if(e.target.id==='socialSearch'){
     const q=e.target.value.toLowerCase();
@@ -87,7 +87,6 @@ function topbarHTML(){
    macroaree:['Panoramica macro-aree','Le tue competenze raggruppate'],
    esposizione:['Area esposizione','Esperienze e sport in vetrina'],
    orientamento:['Orientamento','Direzioni coerenti con il tuo profilo'],
-   chat:['Assistente','Chatta con l\'assistente'],
    social:['Amici','Cerca utenti, richieste e messaggi'],
    portfolio:['E-Portfolio','Bozza generata automaticamente'],
    privacy:['Cassaforte','Decidi tu cosa vede il tutor']
@@ -118,5 +117,5 @@ function renderMascot(){
   const list=Object.keys(tips).includes(state.mascotMood)?tips[state.mascotMood]:tips.felice;
   const tip=list[Math.floor(Math.random()*list.length)];
   const mood=state.mascotMood==='curioso'?'🤔':'😊';
-  m.innerHTML='<div class="mascot-bubble">'+tip+'</div><div class="mascot-panda" title="Panda studioso · apri assistente" onclick="navigate(\'#/chat\')">'+mood+'</div>';
+  m.innerHTML='<div class="mascot-bubble">'+tip+'</div><div class="mascot-panda" title="Panda studioso · apri il tutor AI" onclick="toggleTutor()">'+mood+'</div>';
 }

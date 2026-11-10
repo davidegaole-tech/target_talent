@@ -115,5 +115,5 @@ def test_chat_stream(client, fake) -> None:
 
 def test_index_served(client) -> None:
     r = client.get("/")
-    assert r.status_code == 200 and "Quaderno" in r.text
+    assert r.status_code == 200 and "Talent Passport" in r.text and "tutor.js" in r.text
     assert "googleapis" not in r.text and "cdnjs" not in r.text

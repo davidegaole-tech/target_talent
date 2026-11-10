@@ -70,7 +70,6 @@ const state = {
   streak:5,
   lastActive:'2026-11-10',
   dailyTip:'Oggi prova a documentare un\'esperienza sportiva o un hobby: diventa una prova nel tuo passaporto.',
-  chatHistory:[{role:'ai',text:'Ciao! Sono il tuo amico AI. Posso aiutarti a capire le tue prove, suggerire micro-sfide o spiegare le competenze. Cosa ti incuriosisce?'}],
   mascotMood:'happy',
   theme:'light',
   socialTab:'search',
