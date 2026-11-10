@@ -72,6 +72,8 @@ const state = {
   dailyTip:'Oggi prova a documentare un\'esperienza sportiva o un hobby: diventa una prova nel tuo passaporto.',
   mascotMood:'happy',
   theme:'light',
+  reduceMotion:false,
+  textSize:'normale',
   socialTab:'search',
   socialQuery:'',
   activeChat:null,
@@ -91,7 +93,12 @@ const state = {
    u2:[{from:'them',text:'Ciao! Ho visto che monti video: anche a me piace. Consigli su CapCut?',time:'10:24'}],
    u3:[{from:'me',text:'Grazie per il feedback sull\'evento!',time:'09:02'},{from:'them',text:'Figurati, sei stata bravissima a coordinare tutto.',time:'09:10'}],
    u4:[{from:'them',text:'Ciao Giulia, mi hanno parlato della tua squadra di pallavolo.',time:'ieri'}]
-  }
+  },
+  materie:[
+   {id:'m1',nome:'Matematica',color:'#6366f1',voti:[{v:8,tipo:'scritto',data:'2026-10-02'},{v:7.5,tipo:'orale',data:'2026-10-15'},{v:9,tipo:'scritto',data:'2026-11-05'}]},
+   {id:'m2',nome:'Italiano',color:'#ec4899',voti:[{v:7,tipo:'orale',data:'2026-10-10'},{v:8,tipo:'scritto',data:'2026-11-02'}]},
+   {id:'m3',nome:'Scienze',color:'#14b8a6',voti:[{v:6.5,tipo:'pratico',data:'2026-10-20'},{v:7.5,tipo:'scritto',data:'2026-11-08'}]}
+  ]
 };
 
 /* ---------- AI ANALYSIS ---------- */

@@ -5,6 +5,7 @@ const ROUTES={
  passaporto:renderPassaporto,
  nuova:renderNuova,
  diario:renderDiario,
+ voti:renderVoti,
  macroaree:renderMacroaree,
  esposizione:renderEsposizione,
  orientamento:renderOrientamento,
@@ -114,20 +115,52 @@ document.addEventListener('click',e=>{
     render();
     return;
   }
-  if(a==='exportData'){ toast('Esportazione dati avviata (demo)'); return; }
-  if(a==='deleteData'){ toast('Dati cancellati (demo)'); return; }
+  if(a==='exportData'){ closeProfile(); toast('Esportazione dati avviata (demo)'); return; }
+  if(a==='deleteData'){ closeProfile(); toast('Dati cancellati (demo)'); return; }
   if(a==='stampa'){ window.print(); return; }
   if(a==='navigateNuova'){ state.prefill=null; navigate('#/nuova'); return; }
   if(a==='apriCv'){ navigate('#/cv'); return; }
-  if(a==='openSettings'){ openModal(renderSettings()); return; }
+  if(a==='openSettings'){ closeProfile(); openModal(renderSettings()); return; }
+  if(a==='toggleProfile'){ const m=$('profileMenu'); if(m) m.hidden=!m.hidden; return; }
+  if(a==='gotoPrivacy'){ closeProfile(); navigate('#/privacy'); return; }
   if(a==='setTheme'){ state.theme=v; document.documentElement.setAttribute('data-theme',v); render(); return; }
   if(a==='setMood'){ state.mascotMood=v; renderMascot(); render(); return; }
+  if(a==='setReduceMotion'){ state.reduceMotion=(v==='on'); applyVisuals(); render(); return; }
+  if(a==='setTextSize'){ state.textSize=v; applyVisuals(); render(); return; }
   if(a==='socialTab'){ state.socialTab=v; render(); return; }
   if(a==='sendRequest'){ const u=state.directory.find(x=>x.id===v); if(u){ u.relation='outgoing'; if(!state.requestsOut.includes(v)) state.requestsOut.push(v); toast('Richiesta di amicizia inviata a '+u.name); } render(); return; }
   if(a==='acceptRequest'){ const u=state.directory.find(x=>x.id===v); if(u){ u.relation='friend'; state.requestsIn=state.requestsIn.filter(x=>x!==v); state.chats[v]=state.chats[v]||[]; toast('Hai accettato la richiesta di '+u.name); } render(); return; }
   if(a==='declineRequest'){ const u=state.directory.find(x=>x.id===v); if(u){ u.relation='none'; state.requestsIn=state.requestsIn.filter(x=>x!==v); } render(); return; }
   if(a==='openChat'){ state.activeChat=v; state.socialTab='messages'; render(); return; }
   if(a==='sendMessage'){ const inp=$('msgInput'); const t=inp?inp.value.trim():''; if(!t) return; (state.chats[v]=state.chats[v]||[]).push({from:'me',text:t,time:'adesso'}); if(inp) inp.value=''; render(); return; }
+  if(a==='addMateria'){
+    openModal(`
+      <button class="modal-close" data-action="closeModal">✕</button>
+      <div style="font-weight:700;font-size:16px;margin-bottom:12px">Nuova materia</div>
+      <div class="form-row"><label>Nome della materia</label><input id="materiaNome" placeholder="Es. Storia" style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface);color:var(--ink)"/></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn sm" data-action="closeModal">Annulla</button>
+        <button class="btn primary sm" data-action="confermaMateria">Aggiungi</button>
+      </div>`);
+    return;
+  }
+  if(a==='confermaMateria'){
+    const n=$('materiaNome'); if(!n || !n.value.trim()){ toast('Scrivi il nome della materia'); return; }
+    const palette=['#6366f1','#ec4899','#14b8a6','#f59e0b','#8b5cf6','#ef4444','#0ea5e9','#84cc16'];
+    state.materie.push({id:'m'+Date.now(),nome:n.value.trim(),color:palette[state.materie.length%palette.length],voti:[]});
+    closeModal(); render(); toast('Materia aggiunta');
+    return;
+  }
+  if(a==='addVoto'){
+    const m=state.materie.find(x=>x.id===v); const card=document.querySelector('[data-materia="'+v+'"]');
+    if(!m || !card) return;
+    const inp=card.querySelector('.vin'); const tipo=card.querySelector('.vtipo').value; const data=card.querySelector('.vdata').value||'2026-11-10';
+    const val=parseFloat(inp.value);
+    if(isNaN(val)||val<1||val>10){ toast('Inserisci un voto tra 1 e 10'); return; }
+    m.voti.push({v:val,tipo:tipo,data:data}); inp.value=''; render();
+    return;
+  }
+  if(a==='removeMateria'){ state.materie=state.materie.filter(x=>x.id!==v); render(); return; }
   if(a==='rigenera'){ toast('Bozza rigenerata'); render(); return; }
   if(a==='condividi'){
     state.shareWithTutor=true;
@@ -176,7 +209,7 @@ function saveState(){
     localStorage.setItem('talent_state', JSON.stringify({
       prove:state.prove, evidences:state.evidences, diarioFilter:state.diarioFilter,
       privacy:state.privacy, dailyTip:state.dailyTip, mascotMood:state.mascotMood,
-      theme:state.theme, streak:state.streak
+      theme:state.theme, streak:state.streak, reduceMotion:state.reduceMotion, textSize:state.textSize
     }));
   }catch(e){}
 }
@@ -193,13 +226,23 @@ function loadState(){
       state.mascotMood=p.mascotMood||'felice';
       state.theme=p.theme||'light';
       state.streak=p.streak||state.streak;
+      state.reduceMotion=!!p.reduceMotion;
+      state.textSize=p.textSize||'normale';
     }
   }catch(e){}
 }
 function applyVisuals(){
   const theme=state.theme||'light';
   document.documentElement.setAttribute('data-theme',theme);
+  document.body.classList.toggle('reduce-motion', !!state.reduceMotion);
+  document.body.classList.toggle('text-large', state.textSize==='grande');
 }
+function closeProfile(){ const m=$('profileMenu'); if(m) m.hidden=true; }
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.profile')){
+    const m=$('profileMenu'); if(m && !m.hidden) m.hidden=true;
+  }
+});
 function render(){
   const r=state.route;
   if(!ROUTES[r]) state.route='passaporto';

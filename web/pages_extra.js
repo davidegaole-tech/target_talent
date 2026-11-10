@@ -205,6 +205,67 @@ function renderThread(userId){
       <button class="btn primary" data-action="sendMessage" data-val="${userId}">Invia</button>
     </div>`;
 }
+function mediaVoti(voti){ if(!voti || !voti.length) return null; const s=voti.reduce((a,b)=>a+b.v,0); return Math.round(s/voti.length*10)/10; }
+function votiChartSVG(voti,color,w=260,h=90){
+  if(!voti || !voti.length) return '<div style="color:var(--muted);font-size:12px;padding:8px 0">Nessun voto ancora.</div>';
+  const sorted=[...voti].sort((a,b)=>a.data.localeCompare(b.data));
+  const n=sorted.length;
+  const padL=22,padR=8,padT=12,padB=16;
+  const iw=w-padL-padR, ih=h-padT-padB;
+  const min=4,max=10;
+  const x=i=>padL + (n===1? iw/2 : iw*i/(n-1));
+  const y=v=>padT + ih*(1-(v-min)/(max-min));
+  let grid='';
+  [4,6,8,10].forEach(g=>{ const gy=y(g); grid+='<line x1="'+padL+'" y1="'+gy.toFixed(1)+'" x2="'+(w-padR)+'" y2="'+gy.toFixed(1)+'" stroke="var(--track)" stroke-width="1"/>'; grid+='<text x="4" y="'+(gy+3).toFixed(1)+'" font-size="9" fill="var(--label)">'+g+'</text>'; });
+  const pts=sorted.map((v,i)=>x(i).toFixed(1)+','+y(v.v).toFixed(1));
+  const poly='<polyline points="'+pts.join(' ')+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+  let dots='',labels='';
+  sorted.forEach((v,i)=>{ const px=x(i).toFixed(1), py=y(v.v).toFixed(1); dots+='<circle cx="'+px+'" cy="'+py+'" r="3.5" fill="'+color+'" stroke="var(--surface)" stroke-width="1.5"/>'; labels+='<text x="'+px+'" y="'+(y(v.v)-7).toFixed(1)+'" text-anchor="middle" font-size="10" font-weight="700" fill="'+color+'">'+v.v+'</text>'; });
+  return '<svg width="100%" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="xMidYMid meet">'+grid+poly+dots+labels+'</svg>';
+}
+function renderVoti(){
+  return `
+  <div class="hero">
+    <div>
+      <h1>I tuoi voti</h1>
+      <p>Inserisci a mano i voti delle tue materie e segui l'andamento nel tempo.</p>
+    </div>
+    <div class="hero-side">
+      <button class="btn primary" data-action="addMateria">+ Aggiungi materia</button>
+    </div>
+  </div>
+  <div class="grid g2" id="votiGrid">
+    ${state.materie.map(m=>{
+      const media=mediaVoti(m.voti);
+      const sorted=[...m.voti].sort((a,b)=>b.data.localeCompare(a.data));
+      return `
+      <div class="card" data-materia="${m.id}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:10px;height:10px;border-radius:3px;background:${m.color}"></span>
+            <span class="section-title" style="margin:0">${m.nome}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="chip">media ${media!=null?media:'—'}</span>
+            <button class="btn sm" data-action="removeMateria" data-val="${m.id}" title="Rimuovi materia">✕</button>
+          </div>
+        </div>
+        <div style="margin-bottom:10px">${votiChartSVG(m.voti,m.color)}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+          ${sorted.map(v=>'<span class="chip" style="background:'+m.color+'1f;color:'+m.color+'">'+v.v+' <small style="opacity:.75">('+v.tipo+')</small></span>').join('') || '<span class="section-sub" style="margin:0">Nessun voto.</span>'}
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <input type="number" min="1" max="10" step="0.25" class="vin" placeholder="Voto" style="width:64px;border:1px solid var(--line);border-radius:9px;padding:7px 9px;background:var(--surface);color:var(--ink)"/>
+          <select class="vtipo" style="border:1px solid var(--line);border-radius:9px;padding:7px 9px;background:var(--surface);color:var(--ink)">
+            <option value="scritto">scritto</option><option value="orale">orale</option><option value="pratico">pratico</option>
+          </select>
+          <input type="date" class="vdata" value="2026-11-10" style="border:1px solid var(--line);border-radius:9px;padding:6px 9px;background:var(--surface);color:var(--ink)"/>
+          <button class="btn primary sm" data-action="addVoto" data-val="${m.id}">Aggiungi</button>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
 function renderSettings(){
   return `
   <div style="font-weight:700;font-size:16px;margin-bottom:4px">Impostazioni</div>
@@ -214,6 +275,20 @@ function renderSettings(){
     <div class="seg">
       <button class="segbtn ${state.theme==='light'?'on':''}" data-action="setTheme" data-val="light">Chiaro</button>
       <button class="segbtn ${state.theme==='dark'?'on':''}" data-action="setTheme" data-val="dark">Scuro</button>
+    </div>
+  </div>
+  <div class="form-row">
+    <label>Dimensione testo</label>
+    <div class="seg">
+      <button class="segbtn ${state.textSize==='normale'?'on':''}" data-action="setTextSize" data-val="normale">Normale</button>
+      <button class="segbtn ${state.textSize==='grande'?'on':''}" data-action="setTextSize" data-val="grande">Grande</button>
+    </div>
+  </div>
+  <div class="form-row">
+    <label>Animazioni</label>
+    <div class="seg">
+      <button class="segbtn ${!state.reduceMotion?'on':''}" data-action="setReduceMotion" data-val="off">Attive</button>
+      <button class="segbtn ${state.reduceMotion?'on':''}" data-action="setReduceMotion" data-val="on">Ridotte</button>
     </div>
   </div>
   <div class="form-row">

@@ -60,12 +60,12 @@ function sidebarHTML(){
   const nav=[
    {r:'passaporto',l:'Passaporto',i:'passport'},
    {r:'diario',l:'Diario',i:'list'},
+   {r:'voti',l:'Voti',i:'trend'},
    {r:'macroaree',l:'Macro-aree',i:'trend'},
    {r:'esposizione',l:'Esperienze e sport',i:'image'},
    {r:'orientamento',l:'Orientamento',i:'compass'},
    {r:'portfolio',l:'Documenti',i:'file'},
-   {r:'social',l:'Amici',i:'users'},
-   {r:'privacy',l:'Cassaforte',i:'lock'}
+   {r:'social',l:'Amici',i:'users'}
   ];
   return `
   <div class="brand">
@@ -85,6 +85,7 @@ function topbarHTML(){
   const meta={
    passaporto:['Il tuo Passaporto','Giulia Ferrari · 4B Liceo Scienze Applicate'],
    diario:['Diario delle prove','22 prove raccolte'],
+   voti:['I tuoi voti','Inserisci voti e segui l\'andamento'],
    macroaree:['Panoramica macro-aree','Le tue competenze raggruppate'],
    esposizione:['Area esposizione','Esperienze e sport in vetrina'],
    orientamento:['Orientamento','Direzioni coerenti con il tuo profilo'],
@@ -99,8 +100,23 @@ function topbarHTML(){
   </div>
   <div class="tb-right">
     <span class="chip">Demo</span>
-    <button class="btn soft sm" data-action="openSettings" title="Impostazioni" style="padding:8px 10px">&#9881;&#65039;</button>
-    <div class="avatar">GF</div>
+    <div class="profile">
+      <button class="profilebtn" data-action="toggleProfile" aria-haspopup="menu" aria-expanded="false">
+        <div class="avatar">GF</div>
+        <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="profile-menu" id="profileMenu" hidden>
+        <div class="pm-head">
+          <div class="pm-name">Giulia Ferrari</div>
+          <div class="pm-sub">4B Liceo Scienze Applicate</div>
+        </div>
+        <button class="pm-item" data-action="openSettings">${icon('sparkles',16)}<span>Impostazioni</span></button>
+        <button class="pm-item" data-action="gotoPrivacy">${icon('lock',16)}<span>Cassaforte e privacy</span></button>
+        <div class="pm-sep"></div>
+        <button class="pm-item" data-action="exportData">${icon('file',16)}<span>Esporta i miei dati</span></button>
+        <button class="pm-item pm-danger" data-action="deleteData">${icon('alert',16)}<span>Elimina tutti i dati</span></button>
+      </div>
+    </div>
   </div>`;
 }
 function renderShell(){
