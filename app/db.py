@@ -140,7 +140,8 @@ CREATE TABLE IF NOT EXISTS attachments (
 );
 """
 
-DOC_PUBLIC = "id, title, kind, date, note, filename, mime, size, analysis, created_at, (text IS NOT NULL) AS has_text"
+DOC_PUBLIC = ("id, title, kind, date, note, filename, mime, size, analysis, created_at, "
+              "(text IS NOT NULL) AS has_text, (filename IS NOT NULL AND filename <> '') AS has_file")
 
 ITEM_TYPES = ("summary", "quiz", "flashcards")
 
@@ -174,7 +175,8 @@ class Database:
         self.conn.close()
 
     # --- items ---
-    def list_items(self, type_: str | None = None, q: str | None = None) -> list[dict[str, Any]]:
+    def list_items(self, type_: str | None = None, q: str | None = None,
+                   user_id: str | None = None) -> list[dict[str, Any]]:
         sql = "SELECT * FROM items WHERE 1=1"
         args: list[Any] = []
         if type_:
@@ -200,6 +202,7 @@ class Database:
         item_id: str | None = None,
         best_score: int | None = None,
         created_at: int | None = None,
+        user_id: str | None = None,
     ) -> dict[str, Any]:
         item_id = item_id or uuid.uuid4().hex
         created_at = created_at or int(time.time() * 1000)
@@ -238,9 +241,11 @@ class Database:
         doc["analysis"] = json.loads(doc["analysis"]) if doc.get("analysis") else None
         if "has_text" in doc:
             doc["has_text"] = bool(doc["has_text"])
+        if "has_file" in doc:
+            doc["has_file"] = bool(doc["has_file"])
         return doc
 
-    def list_documents(self) -> list[dict[str, Any]]:
+    def list_documents(self, user_id: str | None = None) -> list[dict[str, Any]]:
         rows = self.conn.execute(f"SELECT {DOC_PUBLIC} FROM documents ORDER BY COALESCE(date, '') DESC, created_at DESC")
         return [d for r in rows if (d := self._doc(r))]
 
@@ -248,8 +253,19 @@ class Database:
         cols = "*" if with_text else DOC_PUBLIC
         return self._doc(self.conn.execute(f"SELECT {cols} FROM documents WHERE id = ?", (doc_id,)).fetchone())
 
+    # SQLite (usato solo nei test) non ha il concetto di proprietario: nessun vincolo.
+    def document_owner(self, doc_id: str) -> str | None:
+        return None
+
+    def attachment_owner(self, attachment_id: str) -> str | None:
+        return None
+
+    def item_owner(self, item_id: str) -> str | None:
+        return None
+
     def create_document(self, doc_id: str, title: str, kind: str, date: str | None, note: str | None,
-                        filename: str, mime: str, size: int, text: str | None) -> dict[str, Any]:
+                        filename: str, mime: str, size: int, text: str | None,
+                        user_id: str | None = None) -> dict[str, Any]:
         self.conn.execute(
             "INSERT INTO documents (id, title, kind, date, note, filename, mime, size, text, created_at)"
             " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -272,7 +288,8 @@ class Database:
         return cur.rowcount > 0
 
     # --- allegati delle prove (foto, audio) ---
-    def create_attachment(self, attachment_id: str, kind: str, filename: str, mime: str, size: int) -> dict[str, Any]:
+    def create_attachment(self, attachment_id: str, kind: str, filename: str, mime: str, size: int,
+                          user_id: str | None = None) -> dict[str, Any]:
         self.conn.execute(
             "INSERT INTO attachments (id, kind, filename, mime, size, created_at) VALUES (?, ?, ?, ?, ?, ?)",
             (attachment_id, kind, filename, mime, size, int(time.time() * 1000)),
@@ -396,6 +413,11 @@ class Database:
             )
             self.conn.execute("DELETE FROM subjects WHERE user_id = ?", (user_id,))
             self.conn.execute("DELETE FROM planner_items WHERE user_id = ?", (user_id,))
+            self.conn.execute("DELETE FROM documents")
+            self.conn.execute("DELETE FROM attachments")
+            # Anche il profilo torna vuoto: altrimenti nome e scuola ricompaiono dopo il reset.
+            self.conn.execute("UPDATE profiles SET data = '{}', updated_at = ? WHERE user_id = ?",
+                              (int(time.time() * 1000), user_id))
             self.conn.commit()
         except Exception:
             self.conn.rollback()

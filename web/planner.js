@@ -63,15 +63,16 @@ function planSection(titolo,sub,lista,vuoto){
 function planItem(p){
   const g=p.data?giorniA(p.data):null;
   const urgente=!p.fatto&&g!=null&&g<=7;
-  const chips=(p.comp||[]).map(id=>{const c=EU.find(x=>x.id===id);return c?'<span class="chip" style="background:'+c.color+'1f;color:var(--text2)">'+c.short+'</span>':'';}).join('');
+  const chips=(p.comp||[]).map(id=>{const c=EU.find(x=>x.id===id);return c?'<span class="chip" style="background:'+tint(c.color)+';color:var(--text2)">'+c.short+'</span>':'';}).join('');
   return `
   <div class="plan-item ${p.fatto?'fatto':''}">
     <button class="plan-check ${p.fatto?'on':''}" data-action="planDone" data-id="${p.id}" aria-pressed="${!!p.fatto}" title="${p.fatto?'Segna come da fare':'Segna come fatto'}">${p.fatto?icon('check',14):''}</button>
     <div style="flex:1;min-width:0">
       <div class="plan-t">${escHTML(p.titolo)}</div>
-      <div class="plan-q ${urgente?'urgente':''}">${p.tipo==='obiettivo'?'🎯 ':''}${quandoTesto(p)}</div>
+      <div class="plan-q ${urgente?'urgente':''}">${p.tipo==='obiettivo'?icon('target',12)+' ':''}${quandoTesto(p)}</div>
       ${p.note?`<div class="plan-n">${escHTML(p.note)}</div>`:''}
       <div class="plan-c">${p.pending?'<span class="ai-loading" style="font-size:11.5px"><span class="ai-spin"></span>Sergio la sta collegando alle competenze…</span>':chips}
+        ${!p.pending&&p.fonte==='algoritmo'?`<span class="plan-src" title="${escHTML(p.perche||'')}">analisi automatica${p.conf?' · confidenza '+p.conf:''}</span>`:''}
         ${!p.pending&&p.fonte==='simulata'?'<span class="plan-src">categorizzata in automatico: Sergio non era disponibile</span>':''}</div>
       ${p.fatto&&!p.raccontata?`<button class="btn soft sm" style="margin-top:8px" data-action="planRacconta" data-id="${p.id}">Racconta com'è andata</button>`:''}
     </div>
@@ -81,11 +82,12 @@ function planItem(p){
 
 async function planCategorizza(item){
   try{
-    const r=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},
+    const r=await fetch('/api/analyze',{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),
       body:JSON.stringify({title:item.titolo,description:item.note||'',kind:'piano'})});
     const data=await r.json().catch(()=>null);
     if(!r.ok) throw new Error(data?.error?.message||'errore');
-    Object.assign(item,{comp:data.comp.map(c=>c.id),perche:data.perche,fonte:'modello'});
+    Object.assign(item,{comp:data.comp.map(c=>c.id),perche:data.perche,fonte:data.engine==='modello'?'modello':'algoritmo',
+      conf:data.conf,segnali:data.segnali||[]});
   }catch(e){
     const sim=analizza(item.titolo+' '+(item.note||''));
     Object.assign(item,{comp:sim.comp.map(c=>c.id),perche:sim.perche,fonte:'simulata'});

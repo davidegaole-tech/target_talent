@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 
 from ..errors import AppError
 from ..services import Services, get_services
+from .account import current_user, current_user_file
 
 router = APIRouter(prefix="/api/attachments")
 
@@ -36,11 +37,18 @@ def _path(s: Services, attachment: dict) -> Path:
     return s.config.attachments_dir / f"{attachment['id']}{Path(attachment['filename']).suffix.lower()}"
 
 
+def _check_owner(s: Services, attachment_id: str, user: dict) -> None:
+    owner = s.db.attachment_owner(attachment_id)
+    if owner and owner != user["id"]:
+        raise _not_found()
+
+
 @router.post("")
 async def upload_attachment(
     file: UploadFile = File(...),
     kind: str = Form("foto"),
     s: Services = Depends(get_services),
+    user: dict = Depends(current_user),
 ) -> dict:
     filename = Path(file.filename or "allegato").name
     ext = Path(filename).suffix.lower()
@@ -62,12 +70,14 @@ async def upload_attachment(
     s.config.attachments_dir.mkdir(parents=True, exist_ok=True)
     (s.config.attachments_dir / f"{attachment_id}{ext}").write_bytes(data)
     attachment = s.db.create_attachment(attachment_id, kind if kind in ("foto", "voce") else "foto",
-                                        filename, mime, len(data))
+                                        filename, mime, len(data), user_id=user["id"])
     return {**attachment, "url": f"/api/attachments/{attachment_id}/file"}
 
 
 @router.get("/{attachment_id}/file")
-def attachment_file(attachment_id: str, s: Services = Depends(get_services)) -> FileResponse:
+def attachment_file(attachment_id: str, s: Services = Depends(get_services),
+                    user: dict = Depends(current_user_file)) -> FileResponse:
+    _check_owner(s, attachment_id, user)
     attachment = s.db.get_attachment(attachment_id)
     if not attachment:
         raise _not_found()
@@ -79,7 +89,9 @@ def attachment_file(attachment_id: str, s: Services = Depends(get_services)) -> 
 
 
 @router.delete("/{attachment_id}")
-def delete_attachment(attachment_id: str, s: Services = Depends(get_services)) -> Response:
+def delete_attachment(attachment_id: str, s: Services = Depends(get_services),
+                      user: dict = Depends(current_user)) -> Response:
+    _check_owner(s, attachment_id, user)
     attachment = s.db.get_attachment(attachment_id)
     if not attachment or not s.db.delete_attachment(attachment_id):
         raise _not_found()

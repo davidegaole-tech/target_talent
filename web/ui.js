@@ -3,8 +3,8 @@ function $(id){return document.getElementById(id);}
 function escHTML(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function safeHref(url){ try{ const u=new URL(String(url), location.origin); if(u.protocol==='http:'||u.protocol==='https:') return escHTML(u.href); }catch(e){} return '#'; }
 function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('on');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('on'),2800);}
-function openModal(html){const r=$('modalRoot');r.innerHTML='<div class="modal-backdrop" data-action="closeModal"></div><div class="modal-card" role="dialog" aria-modal="true">'+html+'</div>';r.classList.add('on');}
-function closeModal(){const r=$('modalRoot');r.classList.remove('on');r.innerHTML='';}
+function openModal(html){const r=$('modalRoot');r.innerHTML='<div class="modal-backdrop" data-action="closeModal"></div><div class="modal-card" role="dialog" aria-modal="true">'+html+'</div>';r.classList.add('on');document.body.classList.add('modal-on');}
+function closeModal(){const r=$('modalRoot');r.classList.remove('on');r.innerHTML='';document.body.classList.remove('modal-on');}
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){ closeModal(); const pm=document.getElementById('profileMenu'); if(pm){ pm.hidden=true; const b=document.querySelector('.profilebtn'); if(b) b.setAttribute('aria-expanded','false'); } }
 });
@@ -57,13 +57,13 @@ function sidebarHTML(){
   const nav=[
    {r:'passaporto',l:'Passaporto',i:'passport'},
    {r:'competenze',l:'Competenze',i:'trend'},
+   {r:'orientamento',l:'Orientamento',i:'compass'},
    {r:'planner',l:'Planner',i:'calendar'},
-   {r:'esperienze',l:'Certificazioni ed esperienze',i:'file'},
-   {r:'appunti',l:'Appunti',i:'text'},
-   haVoti()?{r:'voti',l:'Voti',i:'check'}:null,
+   {r:'esperienze',l:'Esperienze e certificati',i:'file'},
+   {r:'appunti',l:haVoti()?'Appunti e voti':'Appunti',i:'text'},
    {r:'portfolio',l:'CV e portfolio',i:'share'}
   ].filter(Boolean);
-  const attiva=r=>state.route===r||(r==='esperienze'&&state.route==='nuova')||(r==='competenze'&&state.route==='orientamento')||(r==='portfolio'&&state.route==='cv');
+  const attiva=r=>state.route===r||(r==='esperienze'&&state.route==='nuova')||(r==='appunti'&&state.route==='voti')||(r==='portfolio'&&state.route==='cv');
   return `
   <div class="brand">
     <img class="brand-logo" src="img/logo.png" alt="" width="36" height="36"/>
@@ -73,24 +73,22 @@ function sidebarHTML(){
   </div>
   <div class="nav-label">Navigazione</div>
   <nav class="nav">
-    ${nav.map(n=>'<a class="nav-item '+(attiva(n.r)?'on':'')+'" href="#/'+n.r+'" data-route="'+n.r+'"'+(attiva(n.r)?' aria-current="page"':'')+'>'+icon(n.i,17)+'<span>'+n.l+'</span></a>').join('')}
+    ${nav.map(n=>'<a class="nav-item '+(attiva(n.r)?'on':'')+'" href="#/'+n.r+'" data-route="'+n.r+'" aria-label="'+n.l+'"'+(attiva(n.r)?' aria-current="page"':'')+'>'+icon(n.i,17)+'<span>'+n.l+'</span></a>').join('')}
   </nav>
-  <button class="nav-item tour-btn" data-action="startTour">${icon('help',17)}<span>Come funziona</span></button>
-  <div class="side-foot">Prototipo demo<br/>Dati di esempio · Sergio, AI locale<br/>GDPR: dati fittizi</div>`;
+  <button class="nav-item tour-btn" data-action="startTour" aria-label="Come funziona">${icon('help',17)}<span>Come funziona</span></button>
+  <div class="side-foot">${state.isSample?'Dati di esempio · prototipo':'Dati sul tuo computer'}<br/>Talent Radar</div>`;
 }
 function topbarHTML(){
   const meta={
    passaporto:['Passaporto','Il tuo profilo pubblico'],
    competenze:['Competenze','Le 8 competenze chiave europee'],
    planner:['Planner','Attività e obiettivi in programma'],
-   esperienze:['Certificazioni ed esperienze','Tutto quello che ti caratterizza'],
+   esperienze:['Esperienze e certificati','Quello che hai fatto e quello che puoi documentare'],
    nuova:['Nuova esperienza','Racconta qualcosa che hai fatto'],
-   appunti:['Appunti','I tuoi appunti, con Sergio'],
-   voti:['Voti','Materie e andamento'],
-   portfolio:['CV e portfolio','Generati dalle tue esperienze'],
+   appunti:haVoti()?['Appunti e voti','I tuoi appunti, con Sergio · materie e andamento']:['Appunti','I tuoi appunti, con Sergio'],
+  portfolio:['CV e portfolio','Generati dalle tue esperienze'],
    cv:['Il tuo CV','Compilato dal tuo profilo'],
-   orientamento:['Orientamento','Direzioni coerenti con il tuo profilo'],
-   privacy:['Cassaforte','Decidi tu cosa vede il tutor']
+   orientamento:['Orientamento','Direzioni coerenti con il tuo profilo']
   }[state.route]||['Talent Radar',''];
   return `
   <div>
@@ -98,11 +96,11 @@ function topbarHTML(){
     <div class="tb-sub">${escHTML(meta[1])}</div>
   </div>
   <div class="tb-right">
-    <span class="chip">Demo</span>
+    ${state.isSample?'<span class="chip">Demo</span>':''}
     <span class="save-status" id="saveStatus" hidden></span>
     <div class="profile">
       <button class="profilebtn" data-action="toggleProfile" aria-haspopup="menu" aria-expanded="false" aria-label="${escHTML(iniziali())} — menu profilo">
-        <div class="avatar" aria-hidden="true">${escHTML(iniziali())}</div>
+        <div class="avatar" aria-hidden="true">${state.profilo.foto?`<img class="avatar-img" src="${escHTML(fileUrl(state.profilo.foto))}" alt=""/>`:escHTML(iniziali())}</div>
         <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
       </button>
       <div class="profile-menu" id="profileMenu" hidden>
@@ -112,7 +110,6 @@ function topbarHTML(){
         </div>
         <button class="pm-item" data-action="editProfile">${icon('users',16)}<span>Il mio profilo</span></button>
         <button class="pm-item" data-action="openSettings">${icon('sparkles',16)}<span>Impostazioni</span></button>
-        <button class="pm-item" data-action="gotoPrivacy">${icon('lock',16)}<span>Cassaforte e privacy</span></button>
         <div class="pm-sep"></div>
         <button class="pm-item" data-action="exportData">${icon('file',16)}<span>Esporta i miei dati</span></button>
         <button class="pm-item" data-action="importData">${icon('file',16)}<span>Importa i miei dati</span></button>

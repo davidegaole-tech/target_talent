@@ -43,3 +43,13 @@ def test_audio_upload(client) -> None:
     assert r.status_code == 200
     assert r.json()["mime"] == "audio/mpeg"
     assert r.json()["kind"] == "voce"
+
+# Le API di documenti, allegati e schede richiedono il login: ogni test parte autenticato.
+import pytest as _pytest
+
+
+@_pytest.fixture(autouse=True)
+def _autentica(client):
+    r = client.post("/api/auth/register", json={"username": "tester", "password": "password123", "role": "studente"})
+    assert r.status_code == 200, r.text
+    client.headers["Authorization"] = "Bearer " + r.json()["token"]

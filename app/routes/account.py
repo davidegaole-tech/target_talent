@@ -1,7 +1,7 @@
 """Account utente: registrazione, login, sessioni e salvataggio dello stato."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, Query
 
 from ..errors import AppError
 from ..schemas import LoginRequest, RegisterRequest, StatePayload
@@ -36,6 +36,45 @@ def current_user(
     return {**user, "_token": token}
 
 
+def current_user_optional(
+    authorization: str | None = Header(default=None),
+    s: Services = Depends(get_services),
+) -> dict | None:
+    """Come ``current_user`` ma senza errore: None se il token manca o è scaduto.
+
+    Serve alle route che funzionano anche senza login (schede, documenti) ma che
+    devono isolare i dati quando l'utente è autenticato.
+    """
+    if not authorization or not authorization.lower().startswith("bearer "):
+        return None
+    token = authorization.split(" ", 1)[1].strip()
+    session = s.db.get_session(token)
+    if not session:
+        return None
+    user = s.db.get_user(session["user_id"])
+    return {**user, "_token": token} if user else None
+
+
+def current_user_file(
+    t: str | None = Query(default=None),
+    authorization: str | None = Header(default=None),
+    s: Services = Depends(get_services),
+) -> dict:
+    """Utente per i file aperti con un link diretto (es. <img src>).
+
+    Il token può arrivare come ``?t=`` oppure come header Bearer: senza sessione
+    il file non si apre, anche conoscendo l'URL.
+    """
+    token = t or ""
+    if not token and authorization and authorization.lower().startswith("bearer "):
+        token = authorization.split(" ", 1)[1].strip()
+    session = s.db.get_session(token) if token else None
+    user = s.db.get_user(session["user_id"]) if session else None
+    if not user:
+        raise AppError("unauthorized", "Accedi per aprire questo file.", 401)
+    return user
+
+
 def _issue(s: Services, user: dict) -> dict:
     token = new_token()
     s.db.create_session(user["id"], token, SESSION_TTL_MS)
@@ -62,13 +101,37 @@ def register(body: RegisterRequest, s: Services = Depends(get_services)) -> dict
         raise AppError("invalid_username", "Il nome utente deve avere almeno 3 caratteri.", 400)
     if s.db.get_user_by_username(username):
         raise AppError("username_taken", "Nome utente già in uso.", 409)
+
+    nome = (body.first_name or "").strip()
+    cognome = (body.last_name or "").strip()
+    display_name = body.display_name or " ".join(x for x in (nome, cognome) if x) or username
+    email = (body.email or "").strip() or None
+
     user = s.db.create_user(
         username,
         hash_password(body.password),
         body.role,
-        body.display_name or username,
-        body.email,
+        display_name,
+        email,
     )
+
+    # I dati personali raccolti nel modulo di registrazione finiscono subito
+    # nel profilo: la sezione "Il mio profilo" resta per le modifiche.
+    profilo = {
+        "nome": nome,
+        "cognome": cognome,
+        "nascita": (body.birth_date or "").strip(),
+        "citta": (body.city or "").strip(),
+        "email": email or "",
+        "scuola": (body.school or "").strip(),
+        "classe": (body.class_name or "").strip(),
+    }
+    if any(profilo.values()):
+        try:
+            s.db.save_profile(user["id"], {k: v for k, v in profilo.items() if v})
+        except Exception:  # pragma: no cover - il profilo non deve bloccare l'accesso
+            pass
+
     return _issue(s, user)
 
 

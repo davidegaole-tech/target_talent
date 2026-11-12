@@ -11,8 +11,27 @@ from .config import Config, load_config
 from .db import Database
 from .errors import AppError
 from .ollama_client import LLMClient, OllamaClient
-from .routes import account, admin, analyze, attachments, auth, chat, documents, generate, items, system
+from .routes import account, admin, analyze, attachments, auth, chat, cv, documents, export, generate, items, system
 from .services import Services
+
+
+def _make_db(config: Config) -> Database:
+    """Crea il database configurato: MySQL (XAMPP) o SQLite per i test."""
+    if config.db_driver != "mysql":
+        return Database(config.db_path)
+    from .db_mysql import MySQLDatabase
+
+    try:
+        return MySQLDatabase(
+            host=config.mysql_host, port=config.mysql_port, user=config.mysql_user,
+            password=config.mysql_password, database=config.mysql_database,
+        )
+    except Exception as exc:  # pragma: no cover - dipende dall'ambiente
+        raise RuntimeError(
+            "Impossibile collegarsi a MySQL. Controlla che XAMPP abbia MySQL avviato e che "
+            f"{config.mysql_user}@{config.mysql_host}:{config.mysql_port}/{config.mysql_database} "
+            f"esista (importa sql/talent_radar.sql in phpMyAdmin). Dettaglio: {exc}"
+        ) from exc
 
 
 def create_app(config: Config | None = None, client: LLMClient | None = None, db: Database | None = None) -> FastAPI:
@@ -20,7 +39,7 @@ def create_app(config: Config | None = None, client: LLMClient | None = None, db
     app = FastAPI(title="Talent Radar", docs_url="/api/docs", openapi_url="/api/openapi.json")
     app.state.services = Services(
         config=config,
-        db=db or Database(config.db_path),
+        db=db or _make_db(config),
         client=client or OllamaClient(config.ollama_url),
     )
 
@@ -47,7 +66,8 @@ def create_app(config: Config | None = None, client: LLMClient | None = None, db
         return response
 
     for r in (system.router, items.router, generate.router, chat.router, analyze.router,
-              documents.router, attachments.router, auth.router, account.router, admin.router):
+              documents.router, attachments.router, auth.router, account.router, admin.router,
+              export.router, cv.router):
         app.include_router(r)
     app.mount("/", StaticFiles(directory=config.web_dir, html=True), name="web")
     return app

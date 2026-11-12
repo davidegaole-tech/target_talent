@@ -22,12 +22,12 @@ function recapAttivita(){
 
 function renderPassaporto(){
   if(!DOCS.loaded) loadDocs();
-  const p=state.profilo, owner=state.passView!=='public';
+  const p=state.profilo;
+  const owner=true;
   const certEv=(DOCS.items||[]).filter(d=>state.docEvidenza.includes(d.id));
   const titoli=titoliOttenuti();
   const chipComp=id=>{const c=EU.find(x=>x.id===id),v=scoreOf(id);return `<div class="pp-comp"><span class="pp-dot" style="background:${c.color}"></span><span class="pp-comp-n">${c.nome}</span><span class="pp-lv">${livello(v)}</span></div>`;};
   const tags=v=>(v||'').split(/[,;\n]/).map(x=>x.trim()).filter(Boolean);
-  const sport=tags(p.sport), hobby=tags(p.interessi).filter(h=>!sport.some(x=>x.toLowerCase()===h.toLowerCase()));
   const rc=recapAttivita();
   const studio=[p.scuola, p.classe?'classe '+p.classe:''].filter(Boolean).join(' · ');
   return `
@@ -42,9 +42,14 @@ function renderPassaporto(){
       </div>
     </div>
   </div>`:''}
-  ${owner?'':`<div class="pp-preview">Stai vedendo il tuo passaporto come lo vedono gli altri. <button class="btn sm" data-action="passView" data-val="owner">Torna a modificare</button></div>`}
+  ${owner?'':``}
   <div class="card pp-head">
-    <div class="pp-avatar">${escHTML(iniziali())}</div>
+    <div class="pp-avatar-wrap">
+      ${p.foto
+        ? `<img class="pp-avatar pp-avatar-img" src="${escHTML(fileUrl(p.foto))}" alt="Foto di ${escHTML(nomeCompleto())}"/>`
+        : `<div class="pp-avatar">${escHTML(iniziali())}</div>`}
+      ${owner?`<button class="btn sm pp-photo-btn" data-action="changePhoto">${icon('image',13)} Foto</button>`:''}
+    </div>
     <div class="pp-id">
       <h1>${escHTML(nomeCompleto())}</h1>
       <div class="pp-meta">
@@ -56,7 +61,6 @@ function renderPassaporto(){
     </div>
     ${owner?`<div class="pp-actions">
       <button class="btn primary sm" data-action="editProfile">Modifica</button>
-      <button class="btn sm" data-action="passView" data-val="public">Vedi come gli altri</button>
     </div>`:''}
   </div>
 
@@ -66,7 +70,7 @@ function renderPassaporto(){
     <div class="pp-titoli">${titoli.map(t=>`<div class="pp-titolo" style="--tc:${COL[t.id]}"><span class="pp-dot" style="background:${COL[t.id]}"></span><span>${t.t}</span></div>`).join('')}</div>
   </div>`:''}
 
-  <div class="grid g2" style="margin-top:16px">
+  ${state.evidences.length?`<div class="grid g2" style="margin-top:16px">
     <div class="card">
       <div class="section-title">Competenze tecniche</div>
       <div class="section-sub">Scienze, tecnologia, lingue e scrittura</div>
@@ -77,7 +81,7 @@ function renderPassaporto(){
       <div class="section-sub">Relazioni, iniziativa, cittadinanza e cultura</div>
       ${COMP_SOCIO.map(chipComp).join('')}
     </div>
-  </div>
+  </div>`:''}
 
   ${certEv.length?`<div class="card" style="margin-top:16px">
     <div class="section-title">Certificazioni in evidenza</div>
@@ -85,16 +89,7 @@ function renderPassaporto(){
     <div class="pp-recap">${certEv.map(d=>`<div class="pp-rc" style="cursor:default"><div class="pp-rc-t"><span class="pp-dot" style="background:var(--amber)"></span> ${escHTML(d.title)}</div><div class="pp-rc-d">${DOC_KINDS[d.kind]||'Documento'}${d.date?' · '+d.date.slice(0,4):''}</div></div>`).join('')}</div>
   </div>`:''}
 
-  <div class="card" style="margin-top:16px">
-    <div class="section-title">Sport e hobby</div>
-    <div class="section-sub">Quello che fai per passione</div>
-    ${sport.length||hobby.length?`<div class="pp-tags">
-      ${sport.map(t=>`<span class="pp-tag sport">${escHTML(t)}</span>`).join('')}
-      ${hobby.map(t=>`<span class="pp-tag">${escHTML(t)}</span>`).join('')}
-    </div>`:`<p class="section-sub">${owner?'Aggiungili con <strong>Modifica</strong>.':'Nessuno indicato.'}</p>`}
-  </div>
-
-  <div class="card" style="margin-top:16px">
+  ${rc.lista.length?`<div class="card" style="margin-top:16px">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
       <div>
         <div class="section-title">Recap ${state.recapPeriodo==='trimestre'?'del trimestre':'del mese'}</div>
@@ -105,18 +100,18 @@ function renderPassaporto(){
         <button class="segbtn ${state.recapPeriodo==='trimestre'?'on':''}" data-action="recapPeriodo" data-val="trimestre">Trimestre</button>
       </div>
     </div>
-    ${rc.lista.length?`<div class="pp-recap">${rc.lista.map(e=>`
+    <div class="pp-recap">${rc.lista.map(e=>`
       <div class="pp-rc" data-action="openEv" data-id="${e.id}">
-        <div class="pp-rc-t">${e.evidenza?'★ ':''}${escHTML(e.titolo)}</div>
+        <div class="pp-rc-t">${e.evidenza?'<span class="star-mini">'+icon('star',12)+'</span> ':''}${escHTML(e.titolo)}</div>
         <div class="pp-rc-d">${fmtDate(e.data)} · ${e.comp.map(id=>EU.find(c=>c.id===id)?.short).filter(Boolean).join(', ')}</div>
-      </div>`).join('')}</div>`:`<p class="section-sub" style="margin-top:8px">Nessuna attività in questo periodo.</p>`}
-    ${owner&&!rc.scelte&&rc.lista.length?`<p style="font-size:11.5px;color:var(--muted);margin-top:10px">Suggerimento: in <a href="#/esperienze" style="color:var(--accent)">Certificazioni ed esperienze</a> premi ★ sulle attività a cui tieni di più, e compariranno qui.</p>`:''}
-  </div>`;
+      </div>`).join('')}</div>
+    ${owner&&!rc.scelte?`<p style="font-size:11.5px;color:var(--muted);margin-top:10px">Suggerimento: in <a href="#/esperienze" style="color:var(--accent)">Esperienze e certificati</a> premi la stella sulle attività a cui tieni di più, e compariranno qui.</p>`:''}
+  </div>`:''}`;
 }
 function renderEvidenceCard(e){
   const tipoIcon={foto:'image',link:'link',testo:'text',voce:'mic',documento:'file'}[e.tipo]||'text';
-  const chips=e.comp.map(id=>{const c=EU.find(x=>x.id===id);return '<span class="chip" style="background:'+c.color+'1f;color:var(--text2)">'+c.short+'</span>';}).join('');
-  const dimchips=(e.dims||[]).map(id=>{const d=DIMS.find(x=>x.id===id);return '<span class="chip" style="background:'+d.color+'1f;color:var(--text2)">'+d.nome+'</span>';}).join('');
+  const chips=e.comp.map(id=>{const c=EU.find(x=>x.id===id);return '<span class="chip" style="background:'+tint(c.color)+';color:var(--text2)">'+c.short+'</span>';}).join('');
+  const dimchips=(e.dims||[]).map(id=>{const d=DIMS.find(x=>x.id===id);return '<span class="chip" style="background:'+tint(d.color)+';color:var(--text2)">'+d.nome+'</span>';}).join('');
   return `<div class="evidence" data-action="openEv" data-id="${e.id}">
     <div class="evidence-head">
       <div class="evidence-icon">${icon(tipoIcon,16)}</div>
@@ -125,11 +120,11 @@ function renderEvidenceCard(e){
         <div class="evidence-date">${fmtDate(e.data)} · ${e.tipo}</div>
       </div>
       <span class="conf">${(e.ambito==='extra'?'fuori da scuola':e.ambito==='doc'?'documento':'a scuola')}</span>
-      <button class="star ${e.evidenza?'on':''}" data-action="toggleStar" data-id="${e.id}" title="${e.evidenza?'Togli dal passaporto':'Metti in evidenza nel passaporto'}" aria-label="${e.evidenza?'Togli dal passaporto':'Metti in evidenza nel passaporto'}" aria-pressed="${!!e.evidenza}"><span aria-hidden="true">★</span></button>
+      <button class="star ${e.evidenza?'on':''}" data-action="toggleStar" data-id="${e.id}" title="${e.evidenza?'Togli dal passaporto':'Metti in evidenza nel passaporto'}" aria-label="${e.evidenza?'Togli dal passaporto':'Metti in evidenza nel passaporto'}" aria-pressed="${!!e.evidenza}"><span aria-hidden="true">${icon('star',15)}</span></button>
     </div>
     <div class="evidence-desc">${escHTML(e.descrizione)}</div>
-    ${e.attachment&&String(e.attachment.mime||'').startsWith('image/')?`<img src="${escHTML(e.attachment.url)}" alt="" style="width:100%;height:120px;object-fit:cover;border-radius:10px;margin-top:9px;border:1px solid var(--line)"/>`:''}
-    ${e.attachment&&String(e.attachment.mime||'').startsWith('audio/')?`<div style="margin-top:9px"><audio controls src="${escHTML(e.attachment.url)}" style="width:100%" onclick="event.stopPropagation()"></audio></div>`:''}
+    ${e.attachment&&String(e.attachment.mime||'').startsWith('image/')?`<img src="${escHTML(fileUrl(e.attachment.url))}" alt="" style="width:100%;height:120px;object-fit:cover;border-radius:10px;margin-top:9px;border:1px solid var(--line)"/>`:''}
+    ${e.attachment&&String(e.attachment.mime||'').startsWith('audio/')?`<div style="margin-top:9px"><audio controls src="${escHTML(fileUrl(e.attachment.url))}" style="width:100%" onclick="event.stopPropagation()"></audio></div>`:''}
     <div class="evidence-foot">${dimchips}${chips}<span style="font-size:10.5px;color:var(--label);margin-left:auto">${e.corretta?'competenze scelte da te':'confidenza '+e.conf}</span></div>
   </div>`;
 }
@@ -194,7 +189,7 @@ function renderNuova(){
         <button class="btn primary" data-action="analizza">Analizza con l'AI ${icon('sparkles',14)}</button>
         <button class="btn" data-action="resetForm">Pulisci</button>
       </div>
-      <p style="font-size:12px;color:var(--muted);margin-top:14px;line-height:1.5">Hai un attestato, una certificazione o un corso? Caricalo in <a href="#/esperienze" style="color:var(--accent);font-weight:600">Certificazioni ed esperienze</a>: Sergio lo legge e ti suggerisce come valorizzarlo.</p>
+      <p style="font-size:12px;color:var(--muted);margin-top:14px;line-height:1.5">Hai un attestato, una certificazione o un corso? Caricalo in <a href="#/esperienze" style="color:var(--accent);font-weight:600">Esperienze e certificati</a>: Sergio lo legge e ti suggerisce come valorizzarlo.</p>
     </div>
     <div>
       <div class="card" id="analisiCard">
@@ -218,9 +213,9 @@ function renderNuova(){
 function renderAnalisi(res){
   const chips=res.comp.map(c=>{
     const eu=EU.find(x=>x.id===c.id);
-    return '<span class="chip" style="background:'+eu.color+'1f;color:var(--text2);padding:6px 12px;font-size:12px">'+eu.short+' · '+Math.round(c.p*100)+'%</span>';
+    return '<span class="chip" style="background:'+tint(eu.color)+';color:var(--text2);padding:6px 12px;font-size:12px">'+eu.short+' · '+Math.round(c.p*100)+'%</span>';
   }).join('');
-  const dimchips=res.dims.map(id=>{const d=DIMS.find(x=>x.id===id);return '<span class="chip" style="background:'+d.color+'1f;color:var(--text2);padding:6px 12px;font-size:12px">'+d.nome+'</span>';}).join('');
+  const dimchips=res.dims.map(id=>{const d=DIMS.find(x=>x.id===id);return '<span class="chip" style="background:'+tint(d.color)+';color:var(--text2);padding:6px 12px;font-size:12px">'+d.nome+'</span>';}).join('');
   const seg=res.segnali.map(s=>'<span class="chip">'+s+'</span>').join('');
   return `
   <div style="background:linear-gradient(135deg,var(--accent-soft),var(--surface2));border:1px solid var(--line-soft);border-radius:14px;padding:16px;margin-bottom:14px">
@@ -241,52 +236,108 @@ function renderAnalisi(res){
     <button class="btn" data-action="correggi">Correggi</button>
   </div>`;
 }
+/* Percorsi possibili, uno per competenza: la pagina li ordina in base alle prove reali. */
+const PERCORSI={
+  stem:[
+    {titolo:'ITS Informatica e Robotica',tipo:'ITS post-diploma',cosa:'Due anni molto pratici, con laboratorio e tirocinio in azienda. Si esce con un diploma di tecnico superiore.',comp:['stem','digitale']},
+    {titolo:'Ingegneria Informatica',tipo:'Laurea triennale',cosa:'Matematica, programmazione, reti e sistemi. Più teorico di un ITS, apre anche alla magistrale.',comp:['stem','digitale','personale']}
+  ],
+  digitale:[
+    {titolo:'Design e comunicazione digitale',tipo:'ITS o accademia',cosa:'Grafica, video, interfacce e contenuti per il web, con progetti veri commissionati dalle aziende.',comp:['digitale','cultura']},
+    {titolo:'Sviluppo web e applicazioni',tipo:'Mestiere',cosa:'Chi costruisce siti e app: si impara con corsi, ITS o da autodidatta con un portfolio solido.',comp:['digitale','stem']}
+  ],
+  personale:[
+    {titolo:'Scienze dell\'educazione e formazione',tipo:'Laurea triennale',cosa:'Studi su come si apprende e si accompagnano le persone, con tirocini in scuole e comunità.',comp:['personale','cittadinanza']},
+    {titolo:'Tecnico del benessere e dello sport',tipo:'ITS o corso professionale',cosa:'Preparazione atletica, gestione di gruppi e prevenzione: unisce pratica sportiva e relazioni.',comp:['personale','imprenditoriale']}
+  ],
+  imprenditoriale:[
+    {titolo:'Economia e management',tipo:'Laurea triennale',cosa:'Imprese, mercati, budget e organizzazione. Utile se ti piace decidere e far funzionare le cose.',comp:['imprenditoriale','stem']},
+    {titolo:'Organizzazione di eventi e progetti',tipo:'ITS o corso professionalizzante',cosa:'Coordinare persone, tempi e risorse per portare a termine un evento o un progetto.',comp:['imprenditoriale','personale']}
+  ],
+  alfabetica:[
+    {titolo:'Lettere e comunicazione',tipo:'Laurea triennale',cosa:'Testi, lingua e argomentazione: la base per editoria, giornalismo, insegnamento e uffici stampa.',comp:['alfabetica','cultura']},
+    {titolo:'Editoria e scrittura professionale',tipo:'Mestiere',cosa:'Redazione, correzione bozze, contenuti web: si entra con un portfolio di testi pubblicati.',comp:['alfabetica','digitale']}
+  ],
+  multilingue:[
+    {titolo:'Mediazione linguistica',tipo:'Laurea triennale',cosa:'Due o tre lingue, traduzione e comunicazione interculturale, con periodi di studio all\'estero.',comp:['multilingue','alfabetica']},
+    {titolo:'Turismo e relazioni internazionali',tipo:'ITS o laurea',cosa:'Accoglienza, scambi e progetti con partner stranieri: la lingua è lo strumento di lavoro.',comp:['multilingue','imprenditoriale']}
+  ],
+  cittadinanza:[
+    {titolo:'Scienze del servizio sociale',tipo:'Laurea triennale',cosa:'Diritti, welfare e accompagnamento delle persone fragili, con tirocini sul territorio.',comp:['cittadinanza','personale']},
+    {titolo:'Progetti nel terzo settore',tipo:'Mestiere',cosa:'Cooperative e associazioni: progettazione sociale, volontariato organizzato, educativa di strada.',comp:['cittadinanza','imprenditoriale']}
+  ],
+  cultura:[
+    {titolo:'DAMS e discipline artistiche',tipo:'Laurea triennale',cosa:'Cinema, teatro, musica e arti visive, con laboratori e produzioni studentesche.',comp:['cultura','alfabetica']},
+    {titolo:'Design della comunicazione visiva',tipo:'Accademia o ITS',cosa:'Immagine, tipografia e allestimenti: si studia progettando, con un portfolio che cresce ogni anno.',comp:['cultura','digitale']}
+  ]
+};
+const PROPOSTE={
+  alfabetica:{t:'Scrivi la recensione di un libro che ti è piaciuto',why:'Racconta cosa ti ha colpito, non solo la trama',ambito:'extra'},
+  multilingue:{t:'Segui un episodio in lingua e annota cinque espressioni nuove',why:'Poi raccontale come prova: bastano poche righe',ambito:'extra'},
+  stem:{t:'Documenta un problema risolto con numeri o un esperimento',why:'Anche piccolo: conta il metodo che hai usato',ambito:'scuola'},
+  digitale:{t:'Racconta uno strumento digitale che sai usare bene',why:'Un programma, un montaggio, un foglio di calcolo',ambito:'extra'},
+  personale:{t:'Descrivi come organizzi studio, sport e tempo libero',why:'La costanza è una competenza, non un dettaglio',ambito:'extra'},
+  cittadinanza:{t:'Partecipa a un\'iniziativa utile per gli altri e raccontala',why:'Volontariato, raccolta, aiuto a un compagno',ambito:'extra'},
+  imprenditoriale:{t:'Organizza qualcosa con altre persone e annota compiti e budget',why:'Anche un piccolo evento con la classe',ambito:'scuola'},
+  cultura:{t:'Visita una mostra o prova un laboratorio creativo',why:'Poi racconta cosa ti ha colpito e perché',ambito:'extra'}
+};
 function renderOrientamento(){
-  const dirs=[
-   {titolo:'ITS Informatica e Robotica',tipo:'ITS post-diploma',match:87,
-    cosa:'Un percorso di 2 anni dopo il diploma, molto pratico, fatto insieme alle aziende: tanto laboratorio e un tirocinio lungo. Si esce con un diploma di tecnico superiore.',
-    why:'Hai raccontato più volte di progetti tecnici e strumenti digitali, come il robot con Arduino e il podcast.',comp:['stem','digitale'],col:'#14b8a6'},
-   {titolo:'Ingegneria Informatica',tipo:'Laurea triennale',match:81,
-    cosa:'Un corso universitario di 3 anni: matematica, programmazione, reti e sistemi. Più teorico di un ITS, apre anche alla laurea magistrale.',
-    why:'Le tue prove mostrano logica e programmazione. Per un percorso lungo conta anche la costanza, che emerge dalla pallavolo.',comp:['stem','digitale','personale'],col:'#6366f1'},
-   {titolo:'Sviluppatrice IoT / Robotics',tipo:'Mestiere',match:76,
-    cosa:'Chi progetta oggetti "intelligenti" che leggono sensori e comunicano in rete: domotica, macchine industriali, dispositivi medici. Ci si arriva da ITS, università o corsi specifici.',
-    why:'Unisce il lavoro sui sensori del robot con la capacità di coordinare un gruppo, come al mercatino.',comp:['stem','digitale','imprenditoriale'],col:'#ec4899'}
-  ];
+  const chip=id=>{const c=EU.find(x=>x.id===id);return '<span class="chip" style="background:'+tint(c.color)+';color:var(--text2)">'+c.short+'</span>';};
+  const conProve=state.evidences.length>0;
+
+  // Le tre direzioni nascono dalle competenze più documentate, non da testi fissi.
+  const direzioni=[];
+  EU.forEach(c=>{
+    (PERCORSI[c.id]||[]).forEach(p=>{
+      const pesi=p.comp.map((id,i)=>scoreOf(id)*(i===0?0.65:0.35/ Math.max(1,p.comp.length-1)));
+      const match=Math.round(pesi.reduce((a,b)=>a+b,0));
+      if(match<=0) return;
+      const prove=state.evidences.filter(e=>(e.comp||[]).includes(p.comp[0]));
+      direzioni.push({...p,match,col:c.color,prove});
+    });
+  });
+  direzioni.sort((a,b)=>b.match-a.match);
+  const top=direzioni.slice(0,3);
   const gaps=bottomComp(3);
-  const proposte=[
-   {t:'Racconta come vi organizzate nel gruppo del robot',why:'Per far emergere anche come lavori con gli altri',comp:['imprenditoriale','personale'],ambito:'scuola'},
-   {t:'Prova un laboratorio di teatro o una mostra fotografica',why:'Un\'area che non hai ancora esplorato molto',comp:['cultura'],ambito:'extra'},
-   {t:'Scrivi qualche riga su un libro che ti ha cambiato qualcosa',why:'Per raccontare qualcosa di più personale',comp:['alfabetica'],ambito:'extra'}
-  ];
-  const chip=id=>{const c=EU.find(x=>x.id===id);return '<span class="chip" style="background:'+c.color+'1f;color:var(--text2)">'+c.short+'</span>';};
+  const proposte=bottomComp(3).map(g=>({...PROPOSTE[g.id],comp:[g.id],val:g.val}));
+
   return `
   <div class="hero">
     <div>
       <h1>Orientamento</h1>
-      <p>Alcune strade coerenti con quello che hai raccontato. Non sono un verdetto: sono spunti da esplorare, e ogni suggerimento ti dice da quali prove nasce.</p>
+      <p>Strade coerenti con le prove che hai raccolto. Non sono un verdetto: ogni direzione nasce da esperienze concrete e ti dice quali.</p>
     </div>
     <div class="hero-side">
       <button class="btn soft" data-action="askSergio" data-q="Non ho ancora le idee chiare su cosa fare dopo il diploma. Mi aiuti a capire da dove partire, guardando il mio profilo?">${icon('chat',14)} Parlane con Sergio</button>
     </div>
   </div>
+  ${!conProve?`<div class="card empty-state">
+    <div class="empty-ico">${icon('compass',26)}</div>
+    <div>
+      <div class="section-title">Prima una prova, poi l'orientamento</div>
+      <div class="section-sub">Senza esperienze non ci sono direzioni da calcolare: aggiungi la prima prova e questa pagina si popola da sola.</div>
+      <button class="btn primary sm" data-action="goNuova">+ Aggiungi la prima prova</button>
+    </div>
+  </div>`:`
   <div class="section-title">Direzioni da esplorare</div>
-  <div class="section-sub">Ordinate per coerenza con le tue prove</div>
+  <div class="section-sub">Ordinate per coerenza con le prove che hai caricato</div>
   <div class="grid g3">
-    ${dirs.map(d=>`
+    ${top.map(d=>`
       <div class="card" style="display:flex;flex-direction:column">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <span class="chip" style="background:${d.col}1f;color:var(--text2)">${d.tipo}</span>
+          <span class="chip" style="background:${tint(d.col)};color:var(--text2)">${d.tipo}</span>
           <span style="font-size:11.5px;color:var(--muted)">coerenza <strong style="color:var(--text)">${d.match}%</strong></span>
         </div>
-        <div style="font-weight:700;font-size:14px;margin-bottom:6px">${d.titolo}</div>
+        <div style="font-weight:600;font-size:14px;margin-bottom:6px">${d.titolo}</div>
         <p style="font-size:12.5px;color:var(--text);line-height:1.55;margin-bottom:8px"><strong>Cos'è:</strong> ${d.cosa}</p>
-        <p style="font-size:12.5px;color:var(--text2);line-height:1.55;margin-bottom:10px"><strong>Perché te lo suggeriamo:</strong> ${d.why}</p>
+        <p style="font-size:12.5px;color:var(--text2);line-height:1.55;margin-bottom:10px"><strong>Perché te lo suggeriamo:</strong> ${d.prove.length
+          ? 'nasce da '+d.prove.slice(0,2).map(e=>'«'+escHTML(e.titolo)+'»').join(' e ')+'.'
+          : 'le tue prove su '+EU.find(c=>c.id===d.comp[0]).nome.toLowerCase()+' sono ancora poche: è uno spunto da verificare.'}</p>
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">${d.comp.map(chip).join('')}</div>
         <button class="btn soft sm" style="margin-top:auto;align-self:flex-start" data-action="askSergio" data-q="Mi spieghi meglio ${escHTML(d.titolo)} (${escHTML(d.tipo)})? Cosa si studia o si fa, quanto dura, che sbocchi ha e perché potrebbe essere adatto a me?">${icon('chat',14)} Chiedi a Sergio</button>
       </div>`).join('')}
-  </div>
-  <div class="grid g2" style="margin-top:16px">
+  </div>`}
+  ${conProve?`<div class="grid g2" style="margin-top:16px">
     <div class="card">
       <div class="section-title">Aree ancora poco raccontate</div>
       <div class="section-sub">Dove hai caricato meno prove finora</div>
@@ -294,15 +345,16 @@ function renderOrientamento(){
         <div class="bar-row">
           <div class="bar-name">${g.nome}</div>
           <div class="bar-track"><div class="bar-fill" style="width:${g.val}%;background:${COL[g.id]}"></div></div>
+          <div class="bar-val">${g.val}%</div>
         </div>`).join('')}
-      <p style="font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5">Non è un giudizio e non c'è niente da completare: forse in queste aree fai già cose che non hai ancora raccontato, oppure sono semplicemente da scoprire.</p>
+      <p style="font-size:12px;color:var(--muted);margin-top:10px;line-height:1.5">Non è un giudizio: forse in queste aree fai già cose che non hai ancora raccontato.</p>
     </div>
     <div class="card">
       <div class="section-title">Proposte da esplorare</div>
-      <div class="section-sub">Idee, se ti incuriosiscono</div>
+      <div class="section-sub">Una per area, così il profilo si completa</div>
       ${proposte.map(m=>`
-        <div style="border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px">
-          <div style="font-weight:650;font-size:13px;margin-bottom:4px">${m.t}</div>
+        <div style="border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px">
+          <div style="font-weight:600;font-size:13px;margin-bottom:4px">${m.t}</div>
           <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px">${m.why}</div>
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
             <div style="display:flex;gap:6px">${m.comp.map(chip).join('')}</div>
@@ -310,7 +362,7 @@ function renderOrientamento(){
           </div>
         </div>`).join('')}
     </div>
-  </div>`;
+  </div>`:''}`;
 }
 function capolavoro(){
   const list=state.evidences.filter(e=>!e.docId);
@@ -342,26 +394,66 @@ function portfolioDate(){
   const d=state.portfolioAt?new Date(state.portfolioAt):new Date();
   return d.toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'})+', '+d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
 }
+function portfolioScelte(){
+  const ids=(state.portfolioSel||[]).filter(id=>state.evidences.some(e=>e.id===id));
+  if(ids.length) return state.evidences.filter(e=>ids.includes(e.id));
+  const starred=state.evidences.filter(e=>e.evidenza);
+  return (starred.length?starred:[...state.evidences]).slice(0,5);
+}
+function openPortfolioPicker(){
+  const sel=new Set(portfolioScelte().map(e=>e.id));
+  openModal(`
+    <button class="modal-close" data-action="closeModal" aria-label="Chiudi">✕</button>
+    <div class="section-title">Attività significative</div>
+    <div class="section-sub">Scegli cosa mostrare nel portfolio e nel CV. Se non scegli nulla usiamo le prove con la stella.</div>
+    <div class="pick-list">
+      ${state.evidences.length?state.evidences.map(e=>`
+        <label class="pick-row">
+          <input type="checkbox" data-pick="${escHTML(e.id)}" ${sel.has(e.id)?'checked':''}/>
+          <span><strong>${escHTML(e.titolo)}</strong>
+          <small>${e.data?fmtDate(e.data)+' · ':''}${(e.comp||[]).map(id=>EU.find(c=>c.id===id)?.short).filter(Boolean).join(', ')||'senza competenze'}</small></span>
+        </label>`).join(''):'<p class="section-sub">Aggiungi prima qualche prova.</p>'}
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn sm" data-action="closeModal">Annulla</button>
+      <button class="btn primary sm" data-action="savePortfolioSel">Salva selezione</button>
+    </div>`);
+}
 function renderPortfolio(){
   const cap=capolavoro();
   const dir=direzioneOrientamento();
-  const sig=[...state.evidences].sort((a,b)=>(b.evidenza?1:0)-(a.evidenza?1:0));
+  const sig=portfolioScelte();
+  if(!state.evidences.length){
+    return `
+    <div class="hero no-print">
+      <div>
+        <h1>CV e portfolio</h1>
+        <p>Il portfolio e il CV nascono dalle prove che raccogli.</p>
+      </div>
+    </div>
+    <div class="card empty-state">
+      <div class="empty-ico">${icon('file',26)}</div>
+      <div>
+        <div class="section-title">Ancora niente da mostrare</div>
+        <div class="section-sub">Aggiungi la prima attività: il portfolio e il CV si compilano da soli.</div>
+        <button class="btn primary sm" data-action="goNuova">+ Aggiungi la prima prova</button>
+      </div>
+    </div>`;
+  }
   return `
   <div class="hero no-print">
     <div>
       <h1>CV e portfolio</h1>
-      <p>Il tuo E-Portfolio e il tuo CV nascono dalle prove e dai documenti che hai caricato. Puoi esportarli in PDF e condividerli con il tutor.</p>
+      <p>Il portfolio e il CV nascono dalle prove e dai documenti che hai caricato. Scegli tu le attività che ti rappresentano meglio.</p>
     </div>
     <div class="hero-side">
-      <button class="btn" data-action="rigenera">Rigenera bozza</button>
-      <button class="btn" data-action="condividi">${icon('share',14)} Condividi con tutor</button>
-      <button class="btn primary" data-action="stampa">Stampa / Salva come PDF ${icon('file',14)}</button>
+      <button class="btn" data-action="pickPortfolio">${icon('check',14)} Scegli le attività</button>
       <button class="btn" data-action="apriCv">${icon('file',14)} Apri il CV</button>
     </div>
   </div>
   <div class="portfolio">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
-      <div class="avatar" style="width:46px;height:46px;font-size:16px">${escHTML(iniziali())}</div>
+      ${state.profilo.foto?`<img class="portfolio-avatar" src="${escHTML(fileUrl(state.profilo.foto))}" alt=""/>`:`<div class="avatar" style="width:46px;height:46px;font-size:16px">${escHTML(iniziali())}</div>`}
       <div>
         <h2>${escHTML(nomeCompleto())}</h2>
         <div class="muted">${escHTML([state.profilo.classe?'Classe '+state.profilo.classe:'',state.profilo.scuola,state.profilo.anno?'A.S. '+state.profilo.anno:''].filter(Boolean).join(' · '))}</div>
@@ -388,79 +480,20 @@ function renderPortfolio(){
     </section>
     <section>
       <h3>Capolavoro</h3>
-      ${cap?`<p><strong>${escHTML(cap.titolo)}</strong> — ${escHTML(cap.descrizione||'')}${(cap.dims||[]).length?' Dimensioni: '+cap.dims.map(id=>DIMS.find(x=>x.id===id)?.nome).filter(Boolean).join(', ')+'.':''}${(cap.comp||[]).length?' Competenze: '+cap.comp.map(id=>EU.find(x=>x.id===id)?.nome).filter(Boolean).join(', ')+'.':''}</p>`:'<p class="cv-missing">Aggiungi una prova e mettila in evidenza con ★ per generare il Capolavoro.</p>'}
+      ${cap?`<p><strong>${escHTML(cap.titolo)}</strong> — ${escHTML(cap.descrizione||'')}${(cap.dims||[]).length?' Dimensioni: '+cap.dims.map(id=>DIMS.find(x=>x.id===id)?.nome).filter(Boolean).join(', ')+'.':''}${(cap.comp||[]).length?' Competenze: '+cap.comp.map(id=>EU.find(x=>x.id===id)?.nome).filter(Boolean).join(', ')+'.':''}</p>`:''}
     </section>
     <section>
-      <h3>Esperienze significative</h3>
+      <h3>Attività significative</h3>
       <ul>
-        ${sig.slice(0,5).map(e=>'<li><strong>'+escHTML(e.titolo)+'</strong> — '+escHTML((e.descrizione||'').slice(0,90))+'… <em style="color:var(--label)">('+ (e.dims||[]).map(id=>DIMS.find(x=>x.id===id).nome).join(', ')+')</em></li>').join('') || '<li class="cv-missing">Nessuna esperienza ancora.</li>'}
+        ${sig.map(e=>'<li><strong>'+escHTML(e.titolo)+'</strong> — '+escHTML((e.descrizione||'').slice(0,110))+'… <em style="color:var(--label)">('+ (e.dims||[]).map(id=>DIMS.find(x=>x.id===id)?.nome).filter(Boolean).join(', ')+')</em></li>').join('') || '<li class="cv-missing">Nessuna esperienza ancora.</li>'}
       </ul>
     </section>
     <section>
       <h3>Direzione di orientamento</h3>
       <p>${escHTML(dir.testo)}</p>
     </section>
-    <section>
-      <h3>Cosa puoi ancora aggiungere, se vuoi</h3>
-      <ul>
-        <li>Una riflessione personale sul tuo percorso</li>
-        <li>${state.shareWithTutor?'Hai condiviso il portfolio con il tutor':'La condivisione con il tutor, quando ti senti pronto'}</li>
-      </ul>
-    </section>
     <hr/>
-    <div class="muted">Bozza generata il ${portfolioDate()} · da validare con il tutor · Talent Radar</div>
+    <div class="muted">Aggiornato il ${portfolioDate()} · Talent Radar</div>
   </div>`;
 }
-function renderPrivacy(){
-  const toggles=[
-   {id:'tutor',label:'Visibilità al tutor',desc:'Anteprima demo: il tutor usa solo il materiale che carichi, non il profilo.',val:state.privacy.tutor},
-   {id:'orientatore',label:'Condivisione con un orientatore',desc:'Demo: nessun orientatore reale è collegato in questa versione.',val:state.privacy.orientatore},
-   {id:'ai',label:'Uso dei dati per migliorare l\'AI',desc:'Non attivo: l\'AI gira in locale, i dati non escono dal computer.',val:state.privacy.ai},
-   {id:'export',label:'Esportazione dei miei dati',desc:'Attivo davvero: se disattivato, il backup JSON viene bloccato.',val:state.privacy.export}
-  ];
-  return `
-  <div class="hero">
-    <div>
-      <h1>Cassaforte dello studente</h1>
-      <p>Decidi tu cosa vede il tutor. L'AI è spiegabile e correggibile: nessuna scatola nera.</p>
-    </div>
-  </div>
-  <div class="grid g2">
-    <div class="card">
-      <div class="section-title">Privacy e controllo</div>
-      <div class="section-sub">Le tue scelte, in ogni momento modificabili</div>
-      ${toggles.map(t=>`
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--line)">
-          <div style="flex:1">
-            <div style="font-weight:650;font-size:13px">${t.label}</div>
-            <div style="font-size:11.5px;color:var(--muted);margin-top:2px">${t.desc}</div>
-          </div>
-          <label style="position:relative;width:42px;height:24px;flex:none">
-            <input type="checkbox" ${t.val?'checked':''} data-action="privacy" data-val="${t.id}" aria-label="${t.label}" style="opacity:0;width:0;height:0;position:absolute"/>
-            <span style="position:absolute;inset:0;background:${t.val?'var(--accent)':'#d1d5db'};border-radius:99px;transition:.2s;cursor:pointer"></span>
-            <span style="position:absolute;top:3px;left:${t.val?'21px':'3px'};width:18px;height:18px;background:#fff;border-radius:50%;transition:.2s"></span>
-          </label>
-        </div>`).join('')}
-      <p style="font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.5">In questa demo solo l'esportazione ha un effetto reale: le altre voci sono anteprime dichiarate.</p>
-    </div>
-    <div>
-      <div class="card" style="margin-bottom:16px">
-        <div class="section-title">Come funziona l'AI</div>
-        <ul style="margin:8px 0 0;padding-left:18px;font-size:12.5px;color:var(--text2);line-height:1.6">
-          <li><strong>Spiegabile:</strong> vedi le parole che hanno attivato ogni dimensione.</li>
-          <li><strong>Correggibile:</strong> puoi togliere o aggiungere competenze.</li>
-          <li><strong>Locale:</strong> l'analisi gira sul dispositivo, i dati grezzi restano tuoi.</li>
-          <li><strong>Minori:</strong> nessun dato sensibile, consenso esplicito per ogni condivisione.</li>
-        </ul>
-      </div>
-      <div class="card">
-        <div class="section-title">I tuoi dati</div>
-        <p style="font-size:12.5px;color:var(--text2);line-height:1.55">Puoi esportare o cancellare tutte le tue prove in qualsiasi momento. Il tutor vede solo ciò che hai autorizzato.</p>
-        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-          <button class="btn soft sm" data-action="exportData">Esporta dati</button>
-          <button class="btn sm" style="color:var(--rose-text);border-color:#fecaca" data-action="deleteData">Cancella tutto</button>
-        </div>
-      </div>
-    </div>
-  </div>`;
-}
+/* La vecchia "Cassaforte" è stata assorbita nelle impostazioni: i permessi AI vivono lì. */

@@ -80,11 +80,43 @@ Per cambiare modello:
 
 Altre impostazioni in `.env`: `OLLAMA_URL`, `QUADERNO_PORT` (porta della pagina, default 8765), `QUADERNO_NUM_CTX` (finestra di contesto, default 8192).
 
+## Database MySQL (XAMPP)
+
+L'app salva tutto in **MySQL/MariaDB** (XAMPP), non più solo nel browser. Lo schema completo è in `sql/talent_radar.sql`.
+
+1. Avvia **MySQL** dal pannello di XAMPP (e Apache per phpMyAdmin).
+2. Apri <http://localhost/phpmyadmin> → **Importa** → `sql/talent_radar.sql` → Esegui.
+   Da terminale: `C:\xampp\mysql\bin\mysql.exe -u root < sql\talent_radar.sql`
+3. Copia `.env.example` in `.env` e imposta le credenziali (`TALENT_MYSQL_*`).
+4. Avvia l'app.
+
+Lo script crea il database `talent_radar`, l'utente applicativo `talent` e due account:
+
+| Account | Password | Contenuto |
+|---|---|---|
+| `admin` | `password` | profilo, 7 prove, 3 materie con voti, planner, appunti |
+| `demo2` | `password` | account vuoto: serve a verificare l'isolamento dei dati |
+
+Tabelle principali: `users`, `personal_data`, `sessions`, `evidences` + `evidence_competences` + `evidence_dimensions`, `subjects`, `grades`, `planner_items` + `planner_competences`, `competency_analyses` (storico delle analisi), `notes`, `documents`, `ai_items`, `attachments`, `user_state` (snapshot JSON riscritto a ogni salvataggio). Ci sono anche tre viste per i report: `v_competenze_utente`, `v_obiettivi_competenze`, `v_riepilogo_utenti`.
+
+Per tornare al vecchio file SQLite basta `TALENT_DB_DRIVER=sqlite` nel `.env`.
+
+## Competenze degli obiettivi
+
+Il planner collega ogni voce alle competenze europee leggendo il **"Cosa"** (più i dettagli) con l'analisi di `app/competenze.py`:
+
+- dizionario pesato per competenza (frasi, parole chiave, radici) e bonus per il titolo rispetto ai dettagli;
+- gestione delle negazioni ("non voglio fare sport…");
+- punteggi 0-1 con saturazione, così i testi generici restano a bassa confidenza;
+- spiegazione (`perche`) e segnali (le parole che hanno pesato).
+
+Se Ollama è attivo l'analisi la fa il modello; altrimenti (o se il modello fallisce) interviene questo algoritmo, e il planner mostra "analisi automatica · confidenza …". Ogni analisi viene registrata in `competency_analyses`. Per provarla da sola: `POST /api/analyze/competenze` con `{"title": "...", "description": "..."}`.
+
 ## Dove sono i dati
 
-- **Passaporto** (prove, diario, impostazioni): nel browser (`localStorage`). Cancellando i dati del sito tornano quelli di esempio.
-- **Schede di Sergio e documenti**: nel file `data/quaderno.db` (SQLite) nella cartella del progetto; i file dei documenti in `data/documents/`. Restano dopo il riavvio.
-- **Profilo e voti**: nel browser, insieme al passaporto.
+- **Account, profilo, prove, voti, planner, appunti, schede**: nel database MySQL `talent_radar` (vedi sopra). Ogni utente vede solo i propri dati.
+- **File caricati** (documenti e allegati): in `data/documents/` e `data/attachments/`; nel database restano i metadati.
+- **Copia locale nel browser**: il passaporto viene tenuto anche in `localStorage` come cache, ma la verità è sul server; al login lo stato viene ricaricato da MySQL.
 
 **Backup delle schede**: in *Le mie schede* premi **Esporta** per scaricarle in un file JSON. Con **Importa** le ricarichi, anche su un altro computer; quelle già presenti non vengono duplicate.
 

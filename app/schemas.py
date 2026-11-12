@@ -201,7 +201,15 @@ class RegisterRequest(BaseModel):
     password: str = Field(min_length=6, max_length=200)
     role: Literal["studente", "lavoratore", "studente-lavoratore"] = "studente"
     display_name: str | None = Field(default=None, max_length=80)
-    email: str | None = Field(default=None, max_length=200)
+    email: str | None = Field(default=None, max_length=190)
+    # Dati personali raccolti già alla registrazione (facoltativi lato API:
+    # il modulo web li chiede, ma i client vecchi devono continuare a funzionare).
+    first_name: str | None = Field(default=None, max_length=60)
+    last_name: str | None = Field(default=None, max_length=60)
+    birth_date: str | None = Field(default=None, max_length=10)
+    city: str | None = Field(default=None, max_length=80)
+    school: str | None = Field(default=None, max_length=160)
+    class_name: str | None = Field(default=None, max_length=20)
 
 
 class StatePayload(BaseModel):

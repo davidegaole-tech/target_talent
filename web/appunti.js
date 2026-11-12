@@ -5,7 +5,7 @@ async function loadNotes(force){
   if(NOTES.loading || (NOTES.loaded && !force)) return;
   NOTES.loading=true;
   try{
-    const r=await fetch('/api/documents?kind=appunti');
+    const r=await fetch('/api/documents?kind=appunti',{headers:authHeaders()});
     if(!r.ok) throw new Error();
     NOTES.items=(await r.json()).documents; NOTES.offline=false;
   }catch(e){ NOTES.offline=true; }
@@ -15,18 +15,28 @@ async function loadNotes(force){
 
 function renderAppunti(){
   if(!NOTES.loaded) loadNotes();
+  const conVoti=haVoti();
   return `
   <div class="hero">
     <div>
-      <h1>Appunti</h1>
-      <p>Carica i tuoi appunti o incollali. Da ognuno puoi chiedere a Sergio un riassunto, un quiz o delle flashcard per ripassare: le trovi poi in <strong>Le mie schede</strong> nel pannello di Sergio.</p>
+      <h1>${conVoti?'Appunti e voti':'Appunti'}</h1>
+      <p>Carica i tuoi appunti o incollali: da ognuno puoi chiedere a Sergio un riassunto, un quiz o delle flashcard.${conVoti?' Sotto trovi le materie con i voti e l\'andamento nel tempo.':''}</p>
     </div>
     <div class="hero-side">
       <button class="btn primary" data-action="noteForm">+ Aggiungi appunti</button>
+      ${conVoti?'<button class="btn soft" data-action="addMateria">+ Aggiungi materia</button>':''}
     </div>
   </div>
   ${NOTES.form?renderNoteForm():''}
-  <div id="noteList">${renderNoteList()}</div>`;
+  <div id="noteList">${renderNoteList()}</div>
+  ${conVoti?`
+  <div class="section-divider">
+    <div>
+      <div class="section-title">Voti e materie</div>
+      <div class="section-sub" style="margin-bottom:0">Le medie e l'andamento di ogni materia</div>
+    </div>
+  </div>
+  ${renderVotiBody()}`:''}`;
 }
 
 function renderNoteForm(){
@@ -52,7 +62,7 @@ function renderNoteForm(){
 function renderNoteList(){
   if(!NOTES.loaded) return '<div class="card"><div class="ai-loading"><span class="ai-spin"></span>Carico i tuoi appunti…</div></div>';
   if(NOTES.offline) return `<div class="card" style="text-align:center;padding:32px;color:var(--muted);font-size:13px;line-height:1.6">
-      Gli appunti vengono salvati sul tuo computer da Sergio, che ora non è avviato.<br/>Avvia l'app con <code>./scripts/start.sh</code> e ricarica la pagina.</div>`;
+      Gli appunti vengono salvati sul tuo computer da Sergio, che ora non è avviato.<br/>Avvia l'app con lo script di avvio nella cartella <code>scripts/</code> e ricarica la pagina.</div>`;
   if(!NOTES.items.length) return `<div class="card" style="text-align:center;padding:32px;color:var(--muted);font-size:13px;line-height:1.6">
       Non hai ancora aggiunto appunti.<br/>Carica un file o incolla il testo di una lezione: Sergio ti aiuta a ripassarla.</div>`;
   return `<div class="grid g2">${NOTES.items.map(n=>`
@@ -71,7 +81,7 @@ function renderNoteList(){
         <button class="btn soft sm" data-action="noteGen" data-kind="flashcards" data-id="${n.id}">Flashcard</button>
       </div>`:'<p style="font-size:11.5px;color:var(--muted);margin-top:10px">Da questo file non si riesce a leggere il testo (forse è una scansione).</p>'}
       <div style="display:flex;gap:6px;margin-top:10px">
-        <a class="btn sm" href="/api/documents/${n.id}/file" target="_blank" rel="noopener">Apri</a>
+        ${n.has_file!==false?`<a class="btn sm" href="${escHTML(fileUrl('/api/documents/'+n.id+'/file'))}" target="_blank" rel="noopener">Apri</a>`:'<span class="chip">testo importato · file non nel backup</span>'}
         <button class="btn sm ${NOTES.armed===n.id?'danger-armed':''}" style="margin-left:auto;color:${NOTES.armed===n.id?'#fff':'var(--rose-text)'}" data-action="noteDel" data-id="${n.id}">${NOTES.armed===n.id?'Conferma eliminazione':'Elimina'}</button>
       </div>
     </div>`).join('')}</div>`;
@@ -93,12 +103,12 @@ async function uploadNote(btn){
   const fd=new FormData(); fd.append('file',file); fd.append('kind','appunti'); fd.append('title',title);
   btn.disabled=true; btn.textContent='Salvo…';
   try{
-    const r=await fetch('/api/documents',{method:'POST',body:fd});
+    const r=await fetch('/api/documents',{method:'POST',headers:authHeaders(),body:fd});
     const data=await r.json().catch(()=>null);
     if(!r.ok) throw new Error(data?.error?.message||'Salvataggio non riuscito');
     NOTES.items.unshift(data); NOTES.form=false; render(); toast('Appunti salvati');
   }catch(e){
-    toast(e instanceof TypeError?'Sergio non è avviato: non posso salvare gli appunti':e.message);
+    toast(e instanceof TypeError?'Il server non è avviato: non posso salvare gli appunti':e.message);
     if(btn.isConnected){ btn.disabled=false; btn.textContent='Salva'; }
   }
 }
@@ -106,7 +116,7 @@ async function uploadNote(btn){
 async function noteGenerate(id,kind){
   if(!window.sergioGenerate){ toast('Sergio non è disponibile'); return; }
   try{
-    const r=await fetch('/api/documents/'+encodeURIComponent(id)+'/text');
+    const r=await fetch('/api/documents/'+encodeURIComponent(id)+'/text',{headers:authHeaders()});
     const data=await r.json().catch(()=>null);
     if(!r.ok) throw new Error(data?.error?.message||'Non riesco a leggere gli appunti');
     window.sergioGenerate(kind,data.text,data.name);
@@ -121,7 +131,7 @@ async function deleteNote(id){
   }
   NOTES.armed=null;
   try{
-    const r=await fetch('/api/documents/'+encodeURIComponent(id),{method:'DELETE'});
+    const r=await fetch('/api/documents/'+encodeURIComponent(id),{method:'DELETE',headers:authHeaders()});
     if(!r.ok && r.status!==404) throw new Error();
     NOTES.items=NOTES.items.filter(n=>n.id!==id); refreshNotes(); toast('Appunti eliminati');
   }catch(e){ toast('Eliminazione non riuscita'); refreshNotes(); }

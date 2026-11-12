@@ -21,3 +21,13 @@ def test_notes_are_documents_with_readable_text(client) -> None:
 def test_planner_kind_in_prompt() -> None:
     msg = build_analysis_messages("Corso di primo soccorso", "a marzo", "piano")[-1]["content"]
     assert "attività in programma" in msg
+
+# Le API di documenti, allegati e schede richiedono il login: ogni test parte autenticato.
+import pytest as _pytest
+
+
+@_pytest.fixture(autouse=True)
+def _autentica(client):
+    r = client.post("/api/auth/register", json={"username": "tester", "password": "password123", "role": "studente"})
+    assert r.status_code == 200, r.text
+    client.headers["Authorization"] = "Bearer " + r.json()["token"]

@@ -70,3 +70,13 @@ def test_missing_suggestion_is_rejected() -> None:
     from app.generators import RuleError
     with pytest.raises(RuleError):
         validate_analysis({**GOOD, "suggestion": ""}, with_suggestion=True)
+
+# Le API di documenti, allegati e schede richiedono il login: ogni test parte autenticato.
+import pytest as _pytest
+
+
+@_pytest.fixture(autouse=True)
+def _autentica(client):
+    r = client.post("/api/auth/register", json={"username": "tester", "password": "password123", "role": "studente"})
+    assert r.status_code == 200, r.text
+    client.headers["Authorization"] = "Bearer " + r.json()["token"]

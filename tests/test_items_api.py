@@ -121,3 +121,13 @@ def test_index_served(client) -> None:
 
 def test_static_files_are_revalidated(client) -> None:
     assert client.get("/tutor.js").headers["cache-control"] == "no-cache"
+
+# Le API di documenti, allegati e schede richiedono il login: ogni test parte autenticato.
+import pytest as _pytest
+
+
+@_pytest.fixture(autouse=True)
+def _autentica(client):
+    r = client.post("/api/auth/register", json={"username": "tester", "password": "password123", "role": "studente"})
+    assert r.status_code == 200, r.text
+    client.headers["Authorization"] = "Bearer " + r.json()["token"]

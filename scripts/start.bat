@@ -34,27 +34,30 @@ if not exist .venv\.installato (
   type nul > .venv\.installato
 )
 
-rem 3. Ollama
+rem 3. Ollama (facoltativo: senza modello l'app usa l'analisi algoritmica locale)
+set "OLLAMA_OK=1"
 curl -sf "%OLLAMA_URL%/api/version" >nul 2>&1
 if errorlevel 1 (
+  set "OLLAMA_OK=0"
   echo.
-  echo Ollama non risponde su %OLLAMA_URL%.
-  echo   1. Se non l'hai ancora, installalo da https://ollama.com/download
-  echo   2. Avvia l'app Ollama ^(o esegui "ollama serve" in un altro terminale^)
-  echo   3. Poi rilancia questo script.
-  pause & exit /b 1
+  echo Ollama non risponde su %OLLAMA_URL%: Sergio usera' l'analisi automatica locale.
+  echo Per il tutor AI installalo da https://ollama.com/download e avvialo.
 )
 
 rem 4. Modello
-curl -sf "%OLLAMA_URL%/api/tags" | findstr /c:"\"name\":\"%QUADERNO_MODEL%\"" >nul
-if errorlevel 1 (
-  echo Il modello %QUADERNO_MODEL% non e' installato in Ollama.
-  set /p "ANS=Vuoi scaricarlo adesso? Puo' pesare diversi GB [s/N] "
-  if /i "!ANS!"=="s" ollama pull %QUADERNO_MODEL%
+if "%OLLAMA_OK%"=="1" (
+  curl -sf "%OLLAMA_URL%/api/tags" | findstr /c:"\"name\":\"%QUADERNO_MODEL%\"" >nul
+  if errorlevel 1 (
+    echo Il modello %QUADERNO_MODEL% non e' installato in Ollama.
+    set /p "ANS=Vuoi scaricarlo adesso? Puo' pesare diversi GB [s/N] "
+    if /i "!ANS!"=="s" ollama pull %QUADERNO_MODEL%
+  )
 )
 
 rem 5. Avvio e browser
+if not defined QUADERNO_HOST set "QUADERNO_HOST=127.0.0.1"
 set "URL=http://localhost:%QUADERNO_PORT%"
 echo Avvio Talent Radar su %URL%  ^(chiudi questa finestra per fermarlo^)
+if not "%QUADERNO_HOST%"=="127.0.0.1" echo In rete locale: http://%COMPUTERNAME%:%QUADERNO_PORT%
 start "" cmd /c "timeout /t 2 >nul & start %URL%"
-.venv\Scripts\python.exe -m uvicorn app.main:get_app --factory --host 127.0.0.1 --port %QUADERNO_PORT%
+.venv\Scripts\python.exe -m uvicorn app.main:get_app --factory --host %QUADERNO_HOST% --port %QUADERNO_PORT%

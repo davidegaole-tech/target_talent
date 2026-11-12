@@ -1,4 +1,8 @@
-"""Documenti dello studente: attestati, certificati, corsi. File su disco, dati in SQLite."""
+"""Documenti dello studente: attestati, certificati, corsi. File su disco, dati nel DB.
+
+Tutte le operazioni richiedono il login e verificano che l'oggetto appartenga
+all'utente autenticato.
+"""
 from __future__ import annotations
 
 import re
@@ -14,6 +18,7 @@ from ..extract import MAX_BYTES, extract_text
 from ..generators import GenContext
 from ..schemas import DOCUMENT_KINDS
 from ..services import Services, get_services, resolve_model
+from .account import current_user, current_user_file
 
 router = APIRouter(prefix="/api/documents")
 
@@ -34,21 +39,30 @@ def _not_found() -> AppError:
     return AppError("not_found", "Documento non trovato.", 404)
 
 
+def _check_owner(s: Services, doc_id: str, user: dict) -> None:
+    owner = s.db.document_owner(doc_id)
+    if owner and owner != user["id"]:
+        raise _not_found()
+
+
 def _file_path(s: Services, doc: dict) -> Path:
     return s.config.documents_dir / f"{doc['id']}{Path(doc['filename']).suffix.lower()}"
 
 
 @router.get("")
-def list_documents(kind: str | None = None, s: Services = Depends(get_services)) -> dict:
-    docs = s.db.list_documents()
+def list_documents(kind: str | None = None, s: Services = Depends(get_services),
+                   user: dict = Depends(current_user)) -> dict:
+    docs = s.db.list_documents(user_id=user["id"])
     if kind:
         docs = [d for d in docs if d["kind"] == kind]
     return {"documents": docs}
 
 
 @router.get("/{doc_id}/text")
-def document_text(doc_id: str, s: Services = Depends(get_services)) -> dict:
+def document_text(doc_id: str, s: Services = Depends(get_services),
+                  user: dict = Depends(current_user)) -> dict:
     """Testo estratto (per esempio per far creare a Sergio un riassunto degli appunti)."""
+    _check_owner(s, doc_id, user)
     doc = s.db.get_document(doc_id, with_text=True)
     if not doc:
         raise _not_found()
@@ -65,6 +79,7 @@ async def upload_document(
     date: str = Form(""),
     note: str = Form(""),
     s: Services = Depends(get_services),
+    user: dict = Depends(current_user),
 ) -> dict:
     filename = Path(file.filename or "documento").name
     ext = Path(filename).suffix.lower()
@@ -93,11 +108,14 @@ async def upload_document(
         date if DATE_RE.match(date) else None,
         note.strip()[:1000] or None,
         filename, ALLOWED[ext], len(data), text,
+        user_id=user["id"],
     )
 
 
 @router.get("/{doc_id}/file")
-def document_file(doc_id: str, s: Services = Depends(get_services)) -> FileResponse:
+def document_file(doc_id: str, s: Services = Depends(get_services),
+                  user: dict = Depends(current_user_file)) -> FileResponse:
+    _check_owner(s, doc_id, user)
     doc = s.db.get_document(doc_id)
     if not doc:
         raise _not_found()
@@ -108,7 +126,9 @@ def document_file(doc_id: str, s: Services = Depends(get_services)) -> FileRespo
 
 
 @router.post("/{doc_id}/analyze")
-async def analyze_document(doc_id: str, s: Services = Depends(get_services)) -> dict:
+async def analyze_document(doc_id: str, s: Services = Depends(get_services),
+                           user: dict = Depends(current_user)) -> dict:
+    _check_owner(s, doc_id, user)
     doc = s.db.get_document(doc_id, with_text=True)
     if not doc:
         raise _not_found()
@@ -124,7 +144,9 @@ async def analyze_document(doc_id: str, s: Services = Depends(get_services)) -> 
 
 
 @router.delete("/{doc_id}")
-def delete_document(doc_id: str, s: Services = Depends(get_services)) -> Response:
+def delete_document(doc_id: str, s: Services = Depends(get_services),
+                    user: dict = Depends(current_user)) -> Response:
+    _check_owner(s, doc_id, user)
     doc = s.db.get_document(doc_id)
     if not doc or not s.db.delete_document(doc_id):
         raise _not_found()

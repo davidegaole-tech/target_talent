@@ -1,27 +1,48 @@
 /* ---------- DATA ---------- */
 const EU = [
- {id:'alfabetica', nome:'Alfabetica funzionale', short:'Alfabetica', color:'#2f4b7c'},
- {id:'multilingue', nome:'Multilinguistica', short:'Multilingue', color:'#2f6f9f'},
- {id:'stem', nome:'Matematica, scienze e tecnologie', short:'STEM', color:'#0e6b6b'},
- {id:'digitale', nome:'Digitale', short:'Digitale', color:'#5b4b8a'},
- {id:'personale', nome:'Personale e sociale', short:'Personale', color:'#a61b3f'},
- {id:'cittadinanza', nome:'Cittadinanza', short:'Cittadinanza', color:'#7a2e4a'},
- {id:'imprenditoriale', nome:'Imprenditoriale', short:'Imprendit.', color:'#b0576e'},
- {id:'cultura', nome:'Consapevolezza culturale', short:'Cultura', color:'#4f7a5a'}
+ {id:'alfabetica', nome:'Alfabetica funzionale', short:'Alfabetica', color:'var(--c-alfabetica)'},
+ {id:'multilingue', nome:'Multilinguistica', short:'Multilingue', color:'var(--c-multilingue)'},
+ {id:'stem', nome:'Matematica, scienze e tecnologie', short:'STEM', color:'var(--c-stem)'},
+ {id:'digitale', nome:'Digitale', short:'Digitale', color:'var(--c-digitale)'},
+ {id:'personale', nome:'Personale e sociale', short:'Personale', color:'var(--c-personale)'},
+ {id:'cittadinanza', nome:'Cittadinanza', short:'Cittadinanza', color:'var(--c-cittadinanza)'},
+ {id:'imprenditoriale', nome:'Imprenditoriale', short:'Imprendit.', color:'var(--c-imprenditoriale)'},
+ {id:'cultura', nome:'Consapevolezza culturale', short:'Cultura', color:'var(--c-cultura)'}
 ];
 const DIMS = [
- {id:'essere', nome:'Essere', short:'Essere', color:'#5b4b8a', desc:'Chi sei: valori, carattere, motivazioni'},
- {id:'fare', nome:'Fare', short:'Fare', color:'#0e6b6b', desc:'Cosa realizzi: progetti, attività, risultati'},
- {id:'lavorare', nome:'Lavorare', short:'Lavorare', color:'#a61b3f', desc:'Come operi: metodo, team, leadership'}
+ {id:'essere', nome:'Essere', short:'Essere', color:'var(--c-digitale)', desc:'Chi sei: valori, carattere, motivazioni'},
+ {id:'fare', nome:'Fare', short:'Fare', color:'var(--c-stem)', desc:'Cosa realizzi: progetti, attività, risultati'},
+ {id:'lavorare', nome:'Lavorare', short:'Lavorare', color:'var(--c-personale)', desc:'Come operi: metodo, team, leadership'}
 ];
+/* Tinta da un colore di competenza: funziona anche con le variabili CSS */
+function tint(color, pct=12){ return 'color-mix(in srgb, '+color+' '+pct+'%, transparent)'; }
 const COMP_TO_DIM = {alfabetica:'fare',multilingue:'fare',stem:'fare',digitale:'lavorare',personale:'essere',cittadinanza:'essere',imprenditoriale:'lavorare',cultura:'essere'};
 const COL = Object.fromEntries(EU.map(c=>[c.id,c.color]));
 const MESI=['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
 function fmtDate(iso){const d=new Date(iso);return d.getDate()+' '+MESI[d.getMonth()];}
-function scoreOf(id){const n=state.prove[id]||0;return n?Math.min(96,30+n*8):0;}
+/* Token di sessione per le API che isolano i dati per utente */
+function authHeaders(extra){let t=null;try{t=localStorage.getItem('talent_token');}catch(e){}return Object.assign({},extra||{},t?{'Authorization':'Bearer '+t}:{});}
+/* URL di un file protetto: il token viaggia come parametro, così funziona anche in <img src> */
+function fileUrl(url){
+  if(!url) return '';
+  let t=null; try{ t=localStorage.getItem('talent_token'); }catch(e){}
+  if(!t) return url;
+  return url + (url.indexOf('?')>=0?'&':'?') + 't=' + encodeURIComponent(t);
+}
+/* Quante prove raccontano una competenza: unica fonte per radar, barre e orientamento.
+   Conta le esperienze e, per metà, i documenti che hai messo in evidenza nel passaporto. */
+function compCount(id){
+  let n=state.evidences.filter(e=>(e.comp||[]).includes(id)).length;
+  if(typeof DOCS!=='undefined' && DOCS && DOCS.loaded && (state.docEvidenza||[]).length){
+    n+=0.5*(DOCS.items||[]).filter(d=>state.docEvidenza.includes(d.id)&&d.analysis&&Array.isArray(d.analysis.comp)&&
+      d.analysis.comp.some(c=>(c&&c.id?c.id:c)===id)).length;
+  }
+  return n;
+}
+function scoreOf(id){const n=compCount(id);return n?Math.min(96,Math.round(15+n*18)):0;}
+function dimsOf(comp){return [...new Set((comp||[]).map(id=>COMP_TO_DIM[id]).filter(Boolean))];}
 function dimCount(id){return state.evidences.reduce((a,e)=>a+((e.dims||[]).includes(id)?1:0),0);}
 function dimScore(id){const n=dimCount(id);return n?Math.min(96,25+n*12):0;}
-function dimsOf(comp){return [...new Set((comp||[]).map(id=>COMP_TO_DIM[id]).filter(Boolean))];}
 
 const ICONS = {
  passport:'<path d="M4 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="10" r="3"/><path d="M8.5 17h7"/>',
@@ -45,14 +66,18 @@ const ICONS = {
  trend:'<path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/>',
  calendar:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/>',
  help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.3-2.5 3.9"/><path d="M12 17h.01"/>',
- share:'<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>'
+ share:'<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/>',
+ star:'<path d="m12 3.4 2.5 5.4 5.9.8-4.3 4.1 1.1 5.9-5.2-2.9-5.2 2.9 1.1-5.9L3.6 9.6l5.9-.8z"/>',
+ target:'<circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="3.6"/>',
+ close:'<path d="M6 6l12 12M18 6L6 18"/>',
+ chevron:'<path d="M6 9l6 6 6-6"/>'
 };
 function icon(n,s=18){return '<svg class="ic" width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+(ICONS[n]||'')+'</svg>';}
 
 const state = {
   role:'studente',
   route:'passaporto',
-  prove:{alfabetica:4,multilingue:2,stem:6,digitale:7,personale:5,cittadinanza:2,imprenditoriale:3,cultura:2},
+  prove:{},
   evidences:[
    {id:'e1',ambito:'scuola',evidenza:true,titolo:'Robot per la gara regionale',tipo:'foto',data:'2026-11-06',descrizione:'Con il gruppo di laboratorio ho montato e programmato un robot con Arduino. Io ho gestito i sensori e i test.',comp:['stem','digitale'],dims:['fare','lavorare'],conf:'alta',perche:'Progettazione tecnica, programmazione e lavoro di squadra su un obiettivo concreto.'},
    {id:'e2',ambito:'extra',titolo:'Volontaria alla biblioteca di quartiere',tipo:'testo',data:'2026-11-02',descrizione:'Due pomeriggi al mese aiuto a catalogare i libri e a leggere ai bambini delle elementari.',comp:['cittadinanza','personale'],dims:['essere'],conf:'alta',perche:'Impegno civico continuativo e responsabilità verso gli altri.'},
@@ -69,12 +94,14 @@ const state = {
    scuola:'Liceo Scientifico opzione Scienze Applicate', classe:'4B', anno:'2026/27',
    presentazione:'', lingue:'Italiano (madrelingua); Inglese (B2); Spagnolo (A2)',
    digitali:'Arduino, Python di base, Photoshop, Audacity', interessi:'Robotica, fotografia, podcast',
-   sport:'Pallavolo'
+   sport:'Pallavolo', foto:''
   },
   ruolo:null,
   passView:'owner',
   recapPeriodo:'mese',
   docEvidenza:[],
+  espTab:'esperienze',
+  tourDone:false,
   planner:[
    {id:'p1',tipo:'attivita',titolo:'Corso di primo soccorso con la Croce Rossa',note:'Tre incontri il sabato mattina',data:'2026-12-05',comp:['cittadinanza','personale'],perche:'impegno verso gli altri e responsabilità',fonte:'esempio',fatto:false},
    {id:'p2',tipo:'obiettivo',titolo:'Certificazione Cambridge C1',note:'Preparare reading e writing',data:'2027-05-30',comp:['multilingue'],perche:'uso di una lingua straniera a livello avanzato',fonte:'esempio',fatto:false}
@@ -91,6 +118,7 @@ const state = {
   isSample:true,
   sampleBanner:true,
   portfolioAt:null,
+  portfolioSel:[],
   textSize:'normale',
   materie:[
    {id:'m1',nome:'Matematica',color:'#2f4b7c',voti:[{v:8,tipo:'scritto',data:'2026-10-02'},{v:7.5,tipo:'orale',data:'2026-10-15'},{v:9,tipo:'scritto',data:'2026-11-05'}]},

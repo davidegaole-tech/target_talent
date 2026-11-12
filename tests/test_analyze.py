@@ -81,9 +81,14 @@ def test_api_analyze(client, fake) -> None:
 
 
 def test_api_analyze_ollama_down(client, fake) -> None:
+    """Senza Ollama l'analisi non fallisce: usa l'algoritmo locale."""
     fake.up = False
-    r = client.post("/api/analyze", json={"title": "Robot"})
-    assert r.status_code == 503 and r.json()["error"]["code"] == "ollama_unavailable"
+    r = client.post("/api/analyze", json={"title": "Robot con Arduino", "kind": "piano"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["engine"] == "algoritmo"
+    assert body["comp"][0]["id"] == "stem"
+    assert body["model"] is None
 
 
 def test_api_analyze_requires_title(client) -> None:

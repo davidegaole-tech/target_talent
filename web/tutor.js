@@ -112,9 +112,9 @@ $("#ttTabLib").onclick = () => setTab("lib");
 
 /* ---------- API ---------- */
 class ApiError extends Error { constructor(code, message) { super(message); this.code = code; } }
-const NET_MSG = "Sergio non risponde: il server è spento. Avvia l'app con scripts/start.sh.";
+const NET_MSG = "Sergio non risponde: il server è spento. Avvia l'app con lo script nella cartella scripts.";
 async function api(path, opts = {}) {
-  const init = { ...opts, headers: { ...(opts.body && !(opts.body instanceof FormData) ? { "Content-Type": "application/json" } : {}), ...(opts.headers || {}) } };
+  const init = { ...opts, headers: { ...(opts.body && !(opts.body instanceof FormData) ? { "Content-Type": "application/json" } : {}), ...authHeaders(opts.headers || {}) } };
   let res;
   try { res = await fetch(path, init); }
   catch (e) { if (e.name === "AbortError") throw e; throw new ApiError("network", NET_MSG); }
@@ -385,7 +385,7 @@ async function checkHealth() {
   if (!h) {
     banner.className = "tt-banner show";
     $("#ttBannerTxt").innerHTML = "<b>Sergio non è collegato.</b> Avvia l'app con:";
-    $("#ttBannerCmd").textContent = "./scripts/start.sh";
+    $("#ttBannerCmd").textContent = /Windows/i.test(navigator.userAgent) ? "scripts\\start.bat" : "./scripts/start.sh";
   } else if (!ollamaOk) {
     banner.className = "tt-banner show";
     $("#ttBannerTxt").innerHTML = "<b>Ollama non risponde.</b> Avvialo e riprova. Le schede salvate restano consultabili.";

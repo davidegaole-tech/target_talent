@@ -29,21 +29,17 @@ if [ ! -f .venv/.installato ] || [ requirements.txt -nt .venv/.installato ]; the
   touch .venv/.installato
 fi
 
-# 3. Ollama
+# 3. Ollama (facoltativo: senza modello l'app usa l'analisi algoritmica locale)
+OLLAMA_OK=1
 if ! curl -sf "$OLLAMA_URL/api/version" >/dev/null 2>&1; then
+  OLLAMA_OK=0
   echo
-  echo "Ollama non risponde su $OLLAMA_URL."
-  if ! command -v ollama >/dev/null 2>&1; then
-    echo "  1. Installalo da https://ollama.com/download"
-    echo "     (su Linux: curl -fsSL https://ollama.com/install.sh | sh)"
-  fi
-  echo "  2. Avvialo: apri l'app Ollama, oppure esegui in un altro terminale:  ollama serve"
-  echo "  3. Poi rilancia questo script."
-  exit 1
+  echo "Ollama non risponde su $OLLAMA_URL: Sergio userà l'analisi automatica locale."
+  echo "Per il tutor AI: installalo da https://ollama.com/download e avvialo (ollama serve)."
 fi
 
 # 4. Modello
-if ! curl -sf "$OLLAMA_URL/api/tags" | grep -q "\"name\":\"$QUADERNO_MODEL\""; then
+if [ "$OLLAMA_OK" = "1" ] && ! curl -sf "$OLLAMA_URL/api/tags" | grep -q "\"name\":\"$QUADERNO_MODEL\""; then
   echo "Il modello $QUADERNO_MODEL non è installato in Ollama."
   read -r -p "Vuoi scaricarlo adesso? Può pesare diversi GB [s/N] " ans
   case "$ans" in
@@ -53,9 +49,14 @@ if ! curl -sf "$OLLAMA_URL/api/tags" | grep -q "\"name\":\"$QUADERNO_MODEL\""; t
 fi
 
 # 5. Avvio e browser
+QUADERNO_HOST="${QUADERNO_HOST:-127.0.0.1}"
 URL="http://localhost:$QUADERNO_PORT"
 echo "Avvio Talent Radar su $URL  (Ctrl+C per fermarlo)"
+if [ "$QUADERNO_HOST" != "127.0.0.1" ]; then
+  IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+  [ -n "$IP" ] && echo "In rete locale: http://$IP:$QUADERNO_PORT"
+fi
 ( sleep 2
   if command -v xdg-open >/dev/null 2>&1; then xdg-open "$URL" >/dev/null 2>&1
   elif command -v open >/dev/null 2>&1; then open "$URL"; fi ) &
-exec .venv/bin/python -m uvicorn app.main:get_app --factory --host 127.0.0.1 --port "$QUADERNO_PORT"
+exec .venv/bin/python -m uvicorn app.main:get_app --factory --host "$QUADERNO_HOST" --port "$QUADERNO_PORT"

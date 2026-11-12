@@ -62,3 +62,13 @@ def test_extract_endpoint(client) -> None:
     assert r.json() == {"name": "note.txt", "text": TEXT, "words": len(TEXT.split())}
     r = client.post("/api/extract", files={"file": ("scan.pdf", _pdf([]), "application/pdf")})
     assert r.status_code == 400 and "scansione" in r.json()["error"]["message"]
+
+# Le API di documenti, allegati e schede richiedono il login: ogni test parte autenticato.
+import pytest as _pytest
+
+
+@_pytest.fixture(autouse=True)
+def _autentica(client):
+    r = client.post("/api/auth/register", json={"username": "tester", "password": "password123", "role": "studente"})
+    assert r.status_code == 200, r.text
+    client.headers["Authorization"] = "Bearer " + r.json()["token"]

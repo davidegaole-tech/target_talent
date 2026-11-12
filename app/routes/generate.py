@@ -10,6 +10,7 @@ from ..errors import OLLAMA_DOWN_MSG, AppError
 from ..generators import GenContext, generate
 from ..schemas import GenerateRequest
 from ..services import Services, get_services, resolve_model
+from .account import current_user_optional
 
 router = APIRouter(prefix="/api")
 
@@ -19,7 +20,8 @@ def _line(obj: dict) -> bytes:
 
 
 @router.post("/generate")
-async def generate_route(body: GenerateRequest, request: Request, s: Services = Depends(get_services)) -> StreamingResponse:
+async def generate_route(body: GenerateRequest, request: Request, s: Services = Depends(get_services),
+                         user: dict | None = Depends(current_user_optional)) -> StreamingResponse:
     if not (body.text or "").strip() and not (body.topic or "").strip():
         raise AppError("missing_input", "Scrivi un argomento o incolla del materiale.", 400)
 
@@ -37,7 +39,8 @@ async def generate_route(body: GenerateRequest, request: Request, s: Services = 
                 if ev["stage"] == "result":
                     r = ev["result"]
                     source = body.source_name or ("argomento" if not (body.text or "").strip() else "testo incollato")
-                    item = s.db.create_item(r.type, r.title, r.content, st.model, source)
+                    item = s.db.create_item(r.type, r.title, r.content, st.model, source,
+                                            user_id=user["id"] if user else None)
                     yield _line({"stage": "done", "item": item})
                 else:
                     yield _line(ev)
