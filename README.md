@@ -90,6 +90,10 @@ L'app salva tutto in **MySQL/MariaDB** (XAMPP), non più solo nel browser. Lo sc
 3. Copia `.env.example` in `.env` e imposta le credenziali (`TALENT_MYSQL_*`).
 4. Avvia l'app.
 
+Due file SQL:
+- `sql/talent_radar.sql` — struttura, cataloghi (competenze/dimensioni) e account demo: è il punto di partenza pulito.
+- `sql/talent_radar_dati.sql` — **snapshot completo con i dati esistenti** (utenti, profili, prove, voti, planner, appunti, documenti, schede): importalo solo per ripristinare quei dati. Contiene i dati degli account (non le sessioni) e ricrea il database da zero.
+
 Lo script crea il database `talent_radar`, l'utente applicativo `talent` e due account:
 
 | Account | Password | Contenuto |
