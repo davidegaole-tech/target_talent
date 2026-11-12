@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -36,12 +37,26 @@ class Config:
     def documents_dir(self) -> Path:
         return self.db_path.parent / "documents"
 
+    @property
+    def attachments_dir(self) -> Path:
+        return self.db_path.parent / "attachments"
+
+
+def _migrate_legacy_db(db: Path) -> None:
+    """Se il nuovo DB non esiste ma c'è il vecchio quaderno.db, lo copia."""
+    legacy = BASE_DIR / "data" / "quaderno.db"
+    if db.exists() or not legacy.exists() or legacy.resolve() == db.resolve():
+        return
+    db.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(legacy, db)
+
 
 def load_config() -> Config:
     _load_dotenv(BASE_DIR / ".env")
-    db = Path(os.environ.get("QUADERNO_DB", "data/quaderno.db"))
+    db = Path(os.environ.get("TALENT_DB") or os.environ.get("QUADERNO_DB", "data/talent.db"))
     if not db.is_absolute():
         db = BASE_DIR / db
+    _migrate_legacy_db(db)
     return Config(
         ollama_url=os.environ.get("OLLAMA_URL", "http://localhost:11434").rstrip("/"),
         model=os.environ.get("QUADERNO_MODEL", "qwen3:8b"),

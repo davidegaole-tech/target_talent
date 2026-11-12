@@ -34,6 +34,110 @@ CREATE TABLE IF NOT EXISTS documents (
   analysis    TEXT,                 -- JSON dell'analisi AI, se fatta
   created_at  INTEGER NOT NULL
 );
+
+-- ---------------------------------------------------------------------------
+-- Utenti, sessioni e dati del passaporto (Fase 0)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS users (
+  id            TEXT PRIMARY KEY,
+  username      TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  email         TEXT UNIQUE COLLATE NOCASE,
+  password_hash TEXT NOT NULL,
+  role          TEXT NOT NULL DEFAULT 'studente'
+                CHECK (role IN ('studente','lavoratore','studente-lavoratore')),
+  display_name  TEXT,
+  created_at    INTEGER NOT NULL,
+  last_login_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  token      TEXT PRIMARY KEY,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+
+-- Profilo pubblico dell'utente (JSON: nome, scuola, titoli, sport, ...)
+CREATE TABLE IF NOT EXISTS profiles (
+  user_id    TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  data       TEXT NOT NULL DEFAULT '{}',
+  updated_at INTEGER
+);
+
+-- Snapshot completo dello stato dell'app (prove, impostazioni, ...)
+CREATE TABLE IF NOT EXISTS user_state (
+  user_id    TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  data       TEXT NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+-- Tabelle normalizzate: copia interrogabile dei dati contenuti nello stato
+CREATE TABLE IF NOT EXISTS evidences (
+  id         TEXT PRIMARY KEY,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  titolo     TEXT NOT NULL,
+  descrizione TEXT,
+  tipo       TEXT,
+  ambito     TEXT,
+  data       TEXT,
+  comp       TEXT,              -- JSON array di competenze
+  dims       TEXT,              -- JSON array di dimensioni
+  confidenza TEXT,
+  perche     TEXT,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_evidences_user ON evidences(user_id, data DESC);
+
+CREATE TABLE IF NOT EXISTS subjects (
+  id         TEXT PRIMARY KEY,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  nome       TEXT NOT NULL,
+  colore     TEXT,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_subjects_user ON subjects(user_id);
+
+CREATE TABLE IF NOT EXISTS grades (
+  id         TEXT PRIMARY KEY,
+  subject_id TEXT NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+  voto       REAL NOT NULL CHECK (voto >= 1 AND voto <= 10),
+  tipo       TEXT,
+  data       TEXT,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_grades_subject ON grades(subject_id);
+
+CREATE TABLE IF NOT EXISTS planner_items (
+  id         TEXT PRIMARY KEY,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  titolo     TEXT NOT NULL,
+  descrizione TEXT,
+  data       TEXT,
+  completato INTEGER NOT NULL DEFAULT 0,
+  comp       TEXT,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_planner_user ON planner_items(user_id, data);
+
+CREATE TABLE IF NOT EXISTS notes (
+  id         TEXT PRIMARY KEY,
+  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  titolo     TEXT,
+  testo      TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_notes_user ON notes(user_id, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS attachments (
+  id         TEXT PRIMARY KEY,
+  kind       TEXT NOT NULL DEFAULT 'foto',
+  filename   TEXT NOT NULL,
+  mime       TEXT NOT NULL,
+  size       INTEGER NOT NULL,
+  created_at INTEGER NOT NULL
+);
 """
 
 DOC_PUBLIC = "id, title, kind, date, note, filename, mime, size, analysis, created_at, (text IS NOT NULL) AS has_text"
@@ -55,6 +159,15 @@ class Database:
         self.conn = sqlite3.connect(self.path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(SCHEMA)
+        self.conn.commit()
+        # Pulizia delle vecchie tabelle social (la sezione Amici è stata rimossa).
+        for table in ("messages", "friendships"):
+            try:
+                count = self.conn.execute(f"SELECT COUNT(*) AS c FROM {table}").fetchone()["c"]
+                if count == 0:
+                    self.conn.execute(f"DROP TABLE IF EXISTS {table}")
+            except sqlite3.OperationalError:
+                pass
         self.conn.commit()
 
     def close(self) -> None:
@@ -158,6 +271,26 @@ class Database:
         self.conn.commit()
         return cur.rowcount > 0
 
+    # --- allegati delle prove (foto, audio) ---
+    def create_attachment(self, attachment_id: str, kind: str, filename: str, mime: str, size: int) -> dict[str, Any]:
+        self.conn.execute(
+            "INSERT INTO attachments (id, kind, filename, mime, size, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+            (attachment_id, kind, filename, mime, size, int(time.time() * 1000)),
+        )
+        self.conn.commit()
+        attachment = self.get_attachment(attachment_id)
+        assert attachment is not None
+        return attachment
+
+    def get_attachment(self, attachment_id: str) -> dict[str, Any] | None:
+        row = self.conn.execute("SELECT * FROM attachments WHERE id = ?", (attachment_id,)).fetchone()
+        return dict(row) if row else None
+
+    def delete_attachment(self, attachment_id: str) -> bool:
+        cur = self.conn.execute("DELETE FROM attachments WHERE id = ?", (attachment_id,))
+        self.conn.commit()
+        return cur.rowcount > 0
+
     # --- settings ---
     def get_setting(self, key: str) -> str | None:
         row = self.conn.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
@@ -169,3 +302,170 @@ class Database:
             (key, value),
         )
         self.conn.commit()
+
+    # --- utenti e sessioni ---
+    @staticmethod
+    def _user(row: sqlite3.Row | None) -> dict[str, Any] | None:
+        if row is None:
+            return None
+        user = dict(row)
+        user.pop("password_hash", None)
+        return user
+
+    def create_user(self, username: str, password_hash: str, role: str = "studente",
+                    display_name: str | None = None, email: str | None = None) -> dict[str, Any]:
+        user_id = uuid.uuid4().hex
+        now = int(time.time() * 1000)
+        self.conn.execute(
+            "INSERT INTO users (id, username, email, password_hash, role, display_name, created_at)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (user_id, username.strip(), email, password_hash, role, display_name or username.strip(), now),
+        )
+        self.conn.execute(
+            "INSERT INTO profiles (user_id, data, updated_at) VALUES (?, '{}', ?)", (user_id, now)
+        )
+        self.conn.commit()
+        user = self.get_user(user_id)
+        assert user is not None
+        return user
+
+    def get_user(self, user_id: str) -> dict[str, Any] | None:
+        return self._user(self.conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone())
+
+    def get_user_by_username(self, username: str) -> dict[str, Any] | None:
+        """Restituisce anche password_hash: serve solo al login."""
+        row = self.conn.execute("SELECT * FROM users WHERE username = ? COLLATE NOCASE", (username.strip(),)).fetchone()
+        return dict(row) if row else None
+
+    def touch_login(self, user_id: str) -> None:
+        self.conn.execute("UPDATE users SET last_login_at = ? WHERE id = ?", (int(time.time() * 1000), user_id))
+        self.conn.commit()
+
+    def create_session(self, user_id: str, token: str, ttl_ms: int) -> dict[str, Any]:
+        now = int(time.time() * 1000)
+        self.conn.execute(
+            "INSERT INTO sessions (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
+            (token, user_id, now, now + ttl_ms),
+        )
+        self.conn.commit()
+        return {"token": token, "user_id": user_id, "expires_at": now + ttl_ms}
+
+    def get_session(self, token: str) -> dict[str, Any] | None:
+        row = self.conn.execute("SELECT * FROM sessions WHERE token = ?", (token,)).fetchone()
+        if not row:
+            return None
+        session = dict(row)
+        if session["expires_at"] < int(time.time() * 1000):
+            self.delete_session(token)
+            return None
+        return session
+
+    def delete_session(self, token: str) -> bool:
+        cur = self.conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
+        self.conn.commit()
+        return cur.rowcount > 0
+
+    # --- stato del passaporto ---
+    def get_state(self, user_id: str) -> dict[str, Any] | None:
+        row = self.conn.execute("SELECT data FROM user_state WHERE user_id = ?", (user_id,)).fetchone()
+        return json.loads(row["data"]) if row else None
+
+    def save_state(self, user_id: str, data: dict[str, Any]) -> None:
+        now = int(time.time() * 1000)
+        payload = json.dumps(data, ensure_ascii=False)
+        try:
+            self.conn.execute(
+                "INSERT INTO user_state (user_id, data, updated_at) VALUES (?, ?, ?)"
+                " ON CONFLICT(user_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at",
+                (user_id, payload, now),
+            )
+            self._sync_normalized(user_id, data, now)
+            self.conn.commit()
+        except Exception:
+            self.conn.rollback()
+            raise
+
+    def delete_state(self, user_id: str) -> None:
+        """Cancella tutti i dati del passaporto dell'utente (l'account resta)."""
+        try:
+            self.conn.execute("DELETE FROM user_state WHERE user_id = ?", (user_id,))
+            self.conn.execute("DELETE FROM evidences WHERE user_id = ?", (user_id,))
+            self.conn.execute(
+                "DELETE FROM grades WHERE subject_id IN (SELECT id FROM subjects WHERE user_id = ?)",
+                (user_id,),
+            )
+            self.conn.execute("DELETE FROM subjects WHERE user_id = ?", (user_id,))
+            self.conn.execute("DELETE FROM planner_items WHERE user_id = ?", (user_id,))
+            self.conn.commit()
+        except Exception:
+            self.conn.rollback()
+            raise
+
+    def save_profile(self, user_id: str, data: dict[str, Any]) -> None:
+        self.conn.execute(
+            "INSERT INTO profiles (user_id, data, updated_at) VALUES (?, ?, ?)"
+            " ON CONFLICT(user_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at",
+            (user_id, json.dumps(data, ensure_ascii=False), int(time.time() * 1000)),
+        )
+        self.conn.commit()
+
+    @staticmethod
+    def _nid(user_id: str, raw: Any) -> str:
+        """ID normalizzato e isolato per utente (evita collisioni tra account)."""
+        return f"{user_id}:{raw}"
+
+    def _sync_normalized(self, user_id: str, data: dict[str, Any], now: int) -> None:
+        """Riscrive le tabelle normalizzate a partire dallo stato dell'app."""
+        self.conn.execute("DELETE FROM evidences WHERE user_id = ?", (user_id,))
+        for e in data.get("evidences") or []:
+            raw_id = str(e.get("id") or uuid.uuid4().hex)
+            self.conn.execute(
+                "INSERT INTO evidences (id, user_id, titolo, descrizione, tipo, ambito, data, comp, dims,"
+                " confidenza, perche, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    self._nid(user_id, raw_id), user_id,
+                    str(e.get("titolo") or "Senza titolo"), e.get("descrizione"),
+                    e.get("tipo"), e.get("ambito"), e.get("data"),
+                    json.dumps(e.get("comp") or [], ensure_ascii=False),
+                    json.dumps(e.get("dims") or [], ensure_ascii=False),
+                    e.get("conf"), e.get("perche"), now,
+                ),
+            )
+
+        self.conn.execute(
+            "DELETE FROM grades WHERE subject_id IN (SELECT id FROM subjects WHERE user_id = ?)", (user_id,)
+        )
+        self.conn.execute("DELETE FROM subjects WHERE user_id = ?", (user_id,))
+        for mi, m in enumerate(data.get("materie") or []):
+            raw_subject = str(m.get("id") or f"m{mi}")
+            subject_id = self._nid(user_id, raw_subject)
+            self.conn.execute(
+                "INSERT INTO subjects (id, user_id, nome, colore, created_at) VALUES (?, ?, ?, ?, ?)",
+                (subject_id, user_id, str(m.get("nome") or "Materia"), m.get("colore"), now),
+            )
+            for gi, g in enumerate(m.get("voti") or []):
+                try:
+                    voto = float(g.get("v"))
+                except (TypeError, ValueError):
+                    continue
+                if not 1 <= voto <= 10:
+                    continue
+                grade_id = self._nid(user_id, str(g.get("id") or f"{raw_subject}:{gi}"))
+                self.conn.execute(
+                    "INSERT INTO grades (id, subject_id, voto, tipo, data, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                    (grade_id, subject_id, voto, g.get("tipo"), g.get("data"), now),
+                )
+
+        self.conn.execute("DELETE FROM planner_items WHERE user_id = ?", (user_id,))
+        for p in data.get("planner") or []:
+            raw_id = str(p.get("id") or uuid.uuid4().hex)
+            self.conn.execute(
+                "INSERT INTO planner_items (id, user_id, titolo, descrizione, data, completato, comp, created_at)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    self._nid(user_id, raw_id), user_id,
+                    str(p.get("titolo") or "Attività"), p.get("note") or p.get("descrizione"),
+                    p.get("data"), 1 if p.get("fatto") else 0,
+                    json.dumps(p.get("comp") or [], ensure_ascii=False), now,
+                ),
+            )

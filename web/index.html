@@ -11,15 +11,19 @@
 <link rel="stylesheet" href="tutor.css" />
 </head>
 <body>
+<div id="scanline" aria-hidden="true"></div>
+<a class="skip-link" href="#view">Vai al contenuto</a>
 <div class="app">
   <aside class="sidebar" id="sidebar"></aside>
   <div class="main">
     <header class="topbar" id="topbar"></header>
-    <div id="view"></div>
+    <div id="sampleBanner" class="sample-banner" hidden></div>
+    <main id="view"></main>
   </div>
 </div>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="modal-root" id="modalRoot"></div>
+<input type="file" id="importState" accept="application/json,.json" hidden />
 
 <script src="data.js"></script>
 <script src="ui.js"></script>

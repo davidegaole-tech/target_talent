@@ -78,7 +78,7 @@ function renderDocList(){
 
 function renderDocCard(d){
   const a=d.analysis, busy=DOCS.busy[d.id];
-  const chips=a?a.comp.map(c=>{const eu=EU.find(x=>x.id===c.id);return eu?'<span class="chip" style="background:'+eu.color+'1f;color:'+eu.color+'">'+eu.short+'</span>':'';}).join(''):'';
+  const chips=a?a.comp.map(c=>{const eu=EU.find(x=>x.id===c.id);return eu?'<span class="chip" style="background:'+eu.color+'1f;color:var(--text2)">'+eu.short+'</span>':'';}).join(''):'';
   const meta=[d.date?fmtDate(d.date):null, escHTML(d.filename), fmtSize(d.size)].filter(Boolean).join(' · ');
   return `
   <div class="card doc-card">
@@ -86,7 +86,7 @@ function renderDocCard(d){
       <div class="evidence-icon">${icon(d.mime.startsWith('image/')?'image':'file',16)}</div>
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><span class="chip">${DOC_KINDS[d.kind]||'Documento'}</span>
-          <button class="star ${state.docEvidenza.includes(d.id)?'on':''}" style="margin-left:auto" data-action="toggleDocStar" data-id="${d.id}" title="Metti in evidenza nel passaporto" aria-pressed="${state.docEvidenza.includes(d.id)}">★</button></div>
+          <button class="star ${state.docEvidenza.includes(d.id)?'on':''}" style="margin-left:auto" data-action="toggleDocStar" data-id="${d.id}" title="Metti in evidenza nel passaporto" aria-label="Metti in evidenza nel passaporto" aria-pressed="${state.docEvidenza.includes(d.id)}"><span aria-hidden="true">★</span></button></div>
         <div style="font-weight:700;font-size:14px">${escHTML(d.title)}</div>
         <div style="font-size:11.5px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere">${meta}</div>
       </div>
@@ -105,7 +105,7 @@ function renderDocCard(d){
       <button class="btn sm" data-action="docAnalyze" data-id="${d.id}" ${busy?'disabled':''}>${icon('sparkles',13)} ${a?'Rianalizza':'Analizza con l\'AI'}</button>
       ${a?(docInDiario(d.id)?'<span class="chip" style="align-self:center">✓ Conta nelle competenze</span>':`<button class="btn soft sm" data-action="docToDiario" data-id="${d.id}">Conta nelle competenze</button>`):''}
       ${a?`<button class="btn sm" data-action="askSergio" data-q="Ho caricato il documento «${escHTML(d.title)}». Mi dai qualche idea concreta su come andare avanti da qui o su come valorizzarlo nel CV?">${icon('chat',13)} Chiedi a Sergio</button>`:''}
-      <button class="btn sm ${DOCS.armed===d.id?'danger-armed':''}" style="margin-left:auto;color:${DOCS.armed===d.id?'#fff':'var(--rose)'}" data-action="docDelete" data-id="${d.id}">${DOCS.armed===d.id?'Conferma eliminazione':'Elimina'}</button>
+      <button class="btn sm ${DOCS.armed===d.id?'danger-armed':''}" style="margin-left:auto;color:${DOCS.armed===d.id?'#fff':'var(--rose-text)'}" data-action="docDelete" data-id="${d.id}">${DOCS.armed===d.id?'Conferma eliminazione':'Elimina'}</button>
     </div>
   </div>`;
 }

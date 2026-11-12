@@ -196,6 +196,18 @@ class LoginRequest(BaseModel):
     password: str = Field(max_length=200)
 
 
+class RegisterRequest(BaseModel):
+    username: str = Field(min_length=3, max_length=40)
+    password: str = Field(min_length=6, max_length=200)
+    role: Literal["studente", "lavoratore", "studente-lavoratore"] = "studente"
+    display_name: str | None = Field(default=None, max_length=80)
+    email: str | None = Field(default=None, max_length=200)
+
+
+class StatePayload(BaseModel):
+    state: dict[str, Any]
+
+
 def analysis_schema(with_suggestion: bool = False) -> dict[str, Any]:
     schema = _analysis_schema()
     if with_suggestion:

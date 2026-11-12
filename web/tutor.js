@@ -21,7 +21,7 @@ const panel = document.createElement("section");
 panel.className = "tt-panel"; panel.id = "tutor"; panel.setAttribute("aria-label", "Sergio, il tutor AI");
 panel.innerHTML = `
   <div class="tt-head">
-    <div class="tt-mark" aria-hidden="true">🐼</div>
+    <div class="tt-mark" aria-hidden="true"><img src="img/sergio.png" alt=""/></div>
     <div>
       <div class="tt-title">Sergio</div>
       <div class="tt-sub"><span class="tt-dot" id="ttDot"></span><span id="ttStat">Controllo Ollama…</span>
@@ -262,7 +262,7 @@ function openItem(id) {
         <span class="tt-ssub">${esc(countLabel(it))}${it.example ? " · esempio" : " · creata il " + fmtDate(it.created_at) + (it.model ? " · " + esc(it.model) : "")}</span></div>
       <div class="tt-sact">
         ${it.type === "summary" ? '<button class="btn sm" id="ttVCopy">Copia testo</button>' : ""}
-        ${it.example ? "" : '<button class="btn sm" id="ttVDel" style="color:var(--rose)">Elimina</button>'}
+        ${it.example ? "" : '<button class="btn sm" id="ttVDel" style="color:var(--rose-text)">Elimina</button>'}
         <button class="btn sm" id="ttVClose" aria-label="Chiudi">Chiudi</button>
       </div></div>
     <div class="tt-sbody" id="ttVBody"></div>`;
@@ -350,7 +350,7 @@ function startCards(it) {
         <div class="tt-face tt-back"><span class="tt-lbl">Risposta</span><div class="tt-txt">${esc(c.back)}</div></div>
       </button></div>
       <p class="tt-hint">Clicca la carta o premi Spazio per girarla · frecce per scorrere</p>
-      <div class="tt-know"><button class="btn sm" id="ttFNo" style="color:var(--rose)">Da ripassare</button><button class="btn sm" id="ttFYes" style="color:var(--green)">La so</button></div>
+      <div class="tt-know"><button class="btn sm" id="ttFNo" style="color:var(--rose-text)">Da ripassare</button><button class="btn sm" id="ttFYes" style="color:var(--green-text)">La so</button></div>
       <div class="tt-fnav"><span>${i + 1} / ${deck.length} · ${known.size} sapute</span>
         <div class="tt-grp"><button class="btn sm" id="ttFShuf">Mescola</button><button class="btn sm" id="ttFPrev">Indietro</button><button class="btn sm primary" id="ttFNext">Avanti</button></div></div>`;
     $("#ttFc").onclick = flip;
@@ -573,7 +573,7 @@ async function send() {
   if (!text && !attachedText) return;
   if (busy) { busyNotice(); return; }
   const kinds = text.length < 300 ? detectKinds(text) : [];
-  addMsg("user", (text || "Ecco il mio materiale.") + (attachedText ? `\n📎 ${attachedName}` : ""));
+  addMsg("user", (text || "Ecco il mio materiale.") + (attachedText ? `\nAllegato: ${attachedName}` : ""));
   input.value = ""; autosize();
   if (kinds.length) {
     const hint = topicFrom(text);
@@ -604,7 +604,7 @@ $("#ttChips").addEventListener("click", e => {
   if (!src) { input.placeholder = "Prima incolla appunti o scrivi un argomento…"; input.focus(); return; }
   const kinds = b.dataset.ask === "all" ? ["summary", "quiz", "flashcards"] : [b.dataset.ask];
   const what = { summary: "Riassunto", quiz: "Quiz", flashcards: "Flashcard", all: "Riassunto, quiz e flashcard" }[b.dataset.ask];
-  const about = src.text ? (src.name && src.name !== "testo incollato" ? `📎 ${src.name}` : `il testo incollato (${src.text.split(/\s+/).length} parole)`) : src.topic;
+  const about = src.text ? (src.name && src.name !== "testo incollato" ? `Allegato: ${src.name}` : `il testo incollato (${src.text.split(/\s+/).length} parole)`) : src.topic;
   addMsg("user", `${what} su: ${about}`);
   input.value = ""; autosize();
   runGenerations(kinds, src, currentCounts());
@@ -618,12 +618,12 @@ input.addEventListener("input", autosize);
 $("#ttFile").addEventListener("change", async e => {
   const f = e.target.files[0]; e.target.value = ""; if (!f) return;
   if (f.size > 10 * 1024 * 1024) { say("Il file è troppo grande (massimo 10 MB).", true); return; }
-  const a = $("#ttAttached"); a.hidden = false; a.innerHTML = `📎 <span>Leggo ${esc(f.name)}…</span>`;
+  const a = $("#ttAttached"); a.hidden = false; a.innerHTML = `<span>Leggo ${esc(f.name)}…</span>`;
   try {
     const fd = new FormData(); fd.append("file", f);
     const r = await api("/api/extract", { method: "POST", body: fd });
     attachedText = r.text; attachedName = r.name;
-    a.innerHTML = `📎 <span>${esc(r.name)} · ${r.words.toLocaleString("it-IT")} parole</span><button id="ttRmAttach">Rimuovi</button>`;
+    a.innerHTML = `<span>${esc(r.name)} · ${r.words.toLocaleString("it-IT")} parole</span><button id="ttRmAttach">Rimuovi</button>`;
     $("#ttRmAttach").onclick = clearAttach;
   } catch (err) { clearAttach(); say(err.message, true); }
 });
@@ -644,7 +644,7 @@ window.sergioGenerate = (kind, text, name) => {
   material = { text, name, topic: "" };
   const kinds = kind === "all" ? ["summary", "quiz", "flashcards"] : [kind];
   const what = { summary: "Riassunto", quiz: "Quiz", flashcards: "Flashcard", all: "Riassunto, quiz e flashcard" }[kind];
-  addMsg("user", `${what} su: 📎 ${name}`);
+  addMsg("user", `${what} su: ${name}`);
   runGenerations(kinds, { ...material }, currentCounts());
 };
 

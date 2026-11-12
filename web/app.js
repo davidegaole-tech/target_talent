@@ -9,7 +9,6 @@ const ROUTES={
  appunti:renderAppunti,
  voti:renderVoti,
  portfolio:renderPortfolio,
- social:renderSocial,
  nuova:renderNuova,
  orientamento:renderOrientamento,
  cv:renderCv,
@@ -24,17 +23,29 @@ function resolveRoute(r){
   return ROUTES[r]?r:'passaporto';
 }
 
+function playScan(){
+  const el=document.getElementById('scanline');
+  if(el){ el.classList.remove('run'); void el.offsetWidth; el.classList.add('run'); }
+  const view=document.getElementById('view');
+  if(view){
+    view.classList.remove('route-in'); void view.offsetWidth; view.classList.add('route-in');
+    clearTimeout(playScan._t);
+    playScan._t=setTimeout(()=>view.classList.remove('route-in'),900);
+  }
+}
+
 function navigate(hash){
   const r=resolveRoute(hash.replace('#/','')||'passaporto');
   state.route=r;
   if(location.hash!=='#/'+r) location.hash='#/'+r;
   render();
+  playScan();
   window.scrollTo(0,0);
 }
 
 window.addEventListener('hashchange',()=>{
   const r=resolveRoute(location.hash.replace('#/','')||'passaporto');
-  if(r!==state.route){ state.route=r; render(); }
+  if(r!==state.route){ state.route=r; render(); playScan(); }
 });
 
 document.addEventListener('click',e=>{
@@ -51,6 +62,7 @@ document.addEventListener('click',e=>{
   if(a==='tipo'){
     state.pendingType=v;
     document.querySelectorAll('#tipoSeg .segbtn').forEach(b=>b.classList.toggle('on',b.dataset.val===v));
+    ['foto','link','testo','voce'].forEach(t=>{ const el=$('extra-'+t); if(el) el.hidden=(t!==v); });
     return;
   }
   if(a==='analizza'){
@@ -69,13 +81,7 @@ document.addEventListener('click',e=>{
   }
   if(a==='conferma'){
     if(!state.pending) return;
-    const p=state.pending;
-    const ev={id:'e'+Date.now(),ambito:state.pendingAmbito||'scuola',titolo:escHTML(p.titolo),descrizione:escHTML(p.desc),tipo:p.tipo,data:$('p-data').value||'2026-11-10',comp:p.res.comp.map(c=>c.id),dims:p.res.dims,conf:p.res.conf,perche:p.res.perche,corretta:!!p.res.corretta,nuovo:true};
-    state.evidences.unshift(ev);
-    p.res.comp.forEach(c=>{state.prove[c.id]=(state.prove[c.id]||0)+1;});
-    state.pending=null; state.prefill=null; state.pendingAmbito=null;
-    toast('Prova aggiunta al tuo diario');
-    navigate('#/esperienze');
+    savePendingEvidence(state.pending);
     return;
   }
   if(a==='correggi'){ if(state.pending) openCorreggi('pending'); return; }
@@ -99,21 +105,70 @@ document.addEventListener('click',e=>{
   if(a==='openEv'){
     const e=state.evidences.find(x=>x.id===el.dataset.id);
     if(!e) return;
-    const chips=e.comp.map(id=>{const c=EU.find(x=>x.id===id);return '<span class="chip" style="background:'+c.color+'1f;color:'+c.color+'">'+c.short+'</span>';}).join('');
-    const dimchips=(e.dims||[]).map(id=>{const d=DIMS.find(x=>x.id===id);return '<span class="chip" style="background:'+d.color+'1f;color:'+d.color+'">'+d.nome+'</span>';}).join('');
+    const chips=e.comp.map(id=>{const c=EU.find(x=>x.id===id);return '<span class="chip" style="background:'+c.color+'1f;color:var(--text2)">'+c.short+'</span>';}).join('');
+    const dimchips=(e.dims||[]).map(id=>{const d=DIMS.find(x=>x.id===id);return '<span class="chip" style="background:'+d.color+'1f;color:var(--text2)">'+d.nome+'</span>';}).join('');
     openModal(`
-      <button class="modal-close" data-action="closeModal">${icon('plus',16)}</button>
-      <div style="font-weight:700;font-size:16px;margin-bottom:4px">${e.titolo}</div>
-      <div style="font-size:11.5px;color:var(--muted);margin-bottom:12px">${fmtDate(e.data)} · ${(e.ambito==='extra'?'fuori da scuola':e.ambito==='doc'?'documento':'a scuola')} · ${e.tipo}</div>
-      <p style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px">${e.descrizione}</p>
+      <button class="modal-close" data-action="closeModal" aria-label="Chiudi">${icon('plus',16)}</button>
+      <div style="font-weight:700;font-size:16px;margin-bottom:4px">${escHTML(e.titolo)}</div>
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:12px">${fmtDate(e.data)} · ${(e.ambito==='extra'?'fuori da scuola':e.ambito==='doc'?'documento':'a scuola')} · ${escHTML(e.tipo)}</div>
+      <p style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px">${escHTML(e.descrizione)}</p>
+      ${e.link?`<p style="margin-bottom:12px"><a class="btn sm" href="${safeHref(e.link)}" target="_blank" rel="noopener noreferrer">Apri il link</a></p>`:''}
+      ${e.attachment&&String(e.attachment.mime||'').startsWith('image/')?`<img src="${escHTML(e.attachment.url)}" alt="Foto della prova" style="max-width:100%;border-radius:12px;margin-bottom:12px"/>`:''}
+      ${e.attachment&&String(e.attachment.mime||'').startsWith('audio/')?`<audio controls src="${escHTML(e.attachment.url)}" style="width:100%;margin-bottom:12px"></audio>`:''}
       <div style="margin-bottom:8px"><strong style="font-size:12px">Dimensioni:</strong> <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${dimchips}</div></div>
       <div style="margin-bottom:12px"><strong style="font-size:12px">Competenze:</strong> <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">${chips}</div></div>
       <div style="background:var(--surface2);border-radius:12px;padding:12px 14px;font-size:12.5px;color:var(--text2);line-height:1.55"><strong>${e.corretta?'Competenze scelte da te':'Perché l\'AI l\'ha collegata'}:</strong> ${e.perche}.</div>
       <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
         <button class="btn soft sm" data-action="correggiEv" data-id="${e.id}">Correggi le competenze</button>
+        <button class="btn sm" data-action="editEv" data-id="${e.id}">Modifica</button>
+        <button class="btn sm" data-action="deleteEv" data-id="${e.id}" style="color:var(--rose-text);border-color:var(--line)">Elimina</button>
         <button class="btn sm" data-action="closeModal">Chiudi</button>
       </div>
     `);
+    return;
+  }
+  if(a==='editEv'){
+    const e=state.evidences.find(x=>x.id===el.dataset.id); if(!e) return;
+    openModal(`
+      <button class="modal-close" data-action="closeModal" aria-label="Chiudi">✕</button>
+      <div style="font-weight:700;font-size:16px;margin-bottom:12px">Modifica esperienza</div>
+      <div class="form-row"><label for="ev-titolo">Titolo</label><input id="ev-titolo" value="${escHTML(e.titolo||'')}" maxlength="200"/></div>
+      <div class="form-row"><label for="ev-desc">Descrizione</label><textarea id="ev-desc" rows="3">${escHTML(e.descrizione||'')}</textarea></div>
+      <div class="form-row"><label for="ev-data">Data</label><input id="ev-data" type="date" value="${escHTML(e.data||'')}"/></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn sm" data-action="closeModal">Annulla</button>
+        <button class="btn primary sm" data-action="saveEv" data-id="${e.id}">Salva</button>
+      </div>`);
+    return;
+  }
+  if(a==='saveEv'){
+    const e=state.evidences.find(x=>x.id===el.dataset.id); if(!e) return;
+    const titolo=$('ev-titolo').value.trim();
+    const desc=$('ev-desc').value.trim();
+    const data=$('ev-data').value;
+    if(!titolo){ toast('Il titolo non può essere vuoto'); return; }
+    e.titolo=titolo; e.descrizione=desc; if(data) e.data=data;
+    closeModal(); render(); toast('Esperienza aggiornata');
+    return;
+  }
+  if(a==='deleteEv'){
+    const e=state.evidences.find(x=>x.id===el.dataset.id); if(!e) return;
+    openModal(`
+      <button class="modal-close" data-action="closeModal" aria-label="Chiudi">✕</button>
+      <div style="font-weight:700;font-size:16px;margin-bottom:6px">Eliminare questa esperienza?</div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.55">«${escHTML(e.titolo)}» verrà rimossa dal passaporto e dalle competenze.</p>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button class="btn sm" data-action="closeModal">Annulla</button>
+        <button class="btn primary sm" data-action="confirmDeleteEv" data-id="${e.id}" style="background:var(--rose);border-color:var(--rose-text)">Elimina</button>
+      </div>`);
+    return;
+  }
+  if(a==='confirmDeleteEv'){
+    const e=state.evidences.find(x=>x.id===el.dataset.id); if(!e) return;
+    state.evidences=state.evidences.filter(x=>x.id!==e.id);
+    (e.comp||[]).forEach(cid=>{ state.prove[cid]=Math.max(0,(state.prove[cid]||0)-1); });
+    if(e.docId) state.docEvidenza=state.docEvidenza.filter(id=>id!==e.docId);
+    closeModal(); render(); toast('Esperienza eliminata');
     return;
   }
   if(a==='privacy'){
@@ -124,34 +179,43 @@ document.addEventListener('click',e=>{
     render();
     return;
   }
-  if(a==='exportData'){ closeProfile(); toast('Esportazione dati avviata (demo)'); return; }
-  if(a==='deleteData'){ closeProfile(); toast('Dati cancellati (demo)'); return; }
+  if(a==='exportData'){
+    closeProfile();
+    if(!state.privacy.export){ toast('Esportazione disattivata nella Cassaforte'); return; }
+    downloadStateExport();
+    return;
+  }
+  if(a==='importData'){ closeProfile(); const inp=$('importState'); if(inp) inp.click(); return; }
+  if(a==='deleteData'){ closeProfile(); confirmDeleteAll(); return; }
+  if(a==='confirmDeleteAll'){ deleteAllData(); return; }
   if(a==='stampa'){ window.print(); return; }
   if(a==='navigateNuova'){ state.prefill=null; state.pending=null; state.pendingAmbito=el.dataset.ambito||null; navigate('#/nuova'); return; }
   if(a==='apriCv'){ navigate('#/cv'); return; }
   if(a==='openSettings'){ closeProfile(); openModal(renderSettings()); return; }
   if(a==='logout'){ closeProfile(); logout(); return; }
   if(a==='setRuolo'){ state.ruolo=v; render(); refreshSettings(); toast('Ruolo aggiornato'); return; }
+  if(a==='startFresh'){
+    state.evidences=[]; state.prove={}; state.materie=[]; state.planner=[]; state.docEvidenza=[];
+    state.profilo={...state.profilo,nome:currentUserName(),cognome:'',nascita:'',citta:'',email:'',telefono:'',
+      scuola:'',classe:'',anno:'',presentazione:'',lingue:'',digitali:'',interessi:'',sport:''};
+    state.isSample=false; state.sampleBanner=false;
+    render(); toast('Passaporto azzerato: aggiungi la prima prova');
+    return;
+  }
+  if(a==='hideSample'){ state.sampleBanner=false; renderSampleBanner(); saveState(); return; }
+  if(a==='goNuova'){ navigate('#/nuova'); return; }
   if(a==='toggleStar'){ e.stopPropagation(); const ev=state.evidences.find(x=>x.id===el.dataset.id); if(ev){ ev.evidenza=!ev.evidenza; render(); toast(ev.evidenza?'In evidenza nel passaporto':'Tolta dal passaporto'); } return; }
   if(a==='toggleDocStar'){ const id=el.dataset.id; const i=state.docEvidenza.indexOf(id); if(i>=0) state.docEvidenza.splice(i,1); else state.docEvidenza.push(id); render(); toast(i>=0?'Tolto dal passaporto':'In evidenza nel passaporto'); return; }
   if(a==='passView'){ state.passView=v; render(); return; }
   if(a==='recapPeriodo'){ state.recapPeriodo=v; render(); return; }
   if(a==='migliora'){ openModal(renderMigliora(v)); return; }
-  if(a==='toggleProfile'){ const m=$('profileMenu'); if(m) m.hidden=!m.hidden; return; }
+  if(a==='toggleProfile'){ const m=$('profileMenu'); if(m){ m.hidden=!m.hidden; const b=document.querySelector('.profilebtn'); if(b) b.setAttribute('aria-expanded',String(!m.hidden)); } return; }
   if(a==='gotoPrivacy'){ closeProfile(); navigate('#/privacy'); return; }
   if(a==='setTheme'){ state.theme=v; document.documentElement.setAttribute('data-theme',v); render(); refreshSettings(); return; }
-  if(a==='setMood'){ state.mascotMood=v; render(); refreshSettings(); return; }
-  if(a==='setReduceMotion'){ state.reduceMotion=(v==='on'); applyVisuals(); render(); refreshSettings(); return; }
   if(a==='setTextSize'){ state.textSize=v; applyVisuals(); render(); refreshSettings(); return; }
-  if(a==='socialTab'){ state.socialTab=v; render(); return; }
-  if(a==='sendRequest'){ const u=state.directory.find(x=>x.id===v); if(u){ u.relation='outgoing'; if(!state.requestsOut.includes(v)) state.requestsOut.push(v); toast('Richiesta di amicizia inviata a '+u.name); } render(); return; }
-  if(a==='acceptRequest'){ const u=state.directory.find(x=>x.id===v); if(u){ u.relation='friend'; state.requestsIn=state.requestsIn.filter(x=>x!==v); state.chats[v]=state.chats[v]||[]; toast('Hai accettato la richiesta di '+u.name); } render(); return; }
-  if(a==='declineRequest'){ const u=state.directory.find(x=>x.id===v); if(u){ u.relation='none'; state.requestsIn=state.requestsIn.filter(x=>x!==v); } render(); return; }
-  if(a==='openChat'){ state.activeChat=v; state.socialTab='messages'; render(); return; }
-  if(a==='sendMessage'){ const inp=$('msgInput'); const t=inp?inp.value.trim():''; if(!t) return; (state.chats[v]=state.chats[v]||[]).push({from:'me',text:t,time:'adesso'}); if(inp) inp.value=''; render(); return; }
   if(a==='addMateria'){
     openModal(`
-      <button class="modal-close" data-action="closeModal">✕</button>
+      <button class="modal-close" data-action="closeModal" aria-label="Chiudi">✕</button>
       <div style="font-weight:700;font-size:16px;margin-bottom:12px">Nuova materia</div>
       <div class="form-row"><label>Nome della materia</label><input id="materiaNome" placeholder="Es. Storia" style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface);color:var(--ink)"/></div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
@@ -162,7 +226,7 @@ document.addEventListener('click',e=>{
   }
   if(a==='confermaMateria'){
     const n=$('materiaNome'); if(!n || !n.value.trim()){ toast('Scrivi il nome della materia'); return; }
-    const palette=['#6366f1','#ec4899','#14b8a6','#f59e0b','#8b5cf6','#ef4444','#0ea5e9','#84cc16'];
+    const palette=['#2f4b7c','#a61b3f','#0e6b6b','#2f6f9f','#5b4b8a','#7a2e4a','#b0576e','#4f7a5a'];
     state.materie.push({id:'m'+Date.now(),nome:n.value.trim(),color:palette[state.materie.length%palette.length],voti:[]});
     closeModal(); render(); toast('Materia aggiunta');
     return;
@@ -176,8 +240,20 @@ document.addEventListener('click',e=>{
     m.voti.push({v:val,tipo:tipo,data:data}); inp.value=''; render();
     return;
   }
-  if(a==='removeMateria'){ state.materie=state.materie.filter(x=>x.id!==v); render(); return; }
-  if(a==='rigenera'){ toast('Bozza rigenerata'); render(); return; }
+  if(a==='removeMateria'){
+    const m=state.materie.find(x=>x.id===v); if(!m) return;
+    openModal(`
+      <button class="modal-close" data-action="closeModal" aria-label="Chiudi">✕</button>
+      <div style="font-weight:700;font-size:16px;margin-bottom:6px">Rimuovere «${escHTML(m.nome)}»?</div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.55">Verranno eliminati anche i ${ (m.voti||[]).length } voti registrati per questa materia.</p>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+        <button class="btn sm" data-action="closeModal">Annulla</button>
+        <button class="btn primary sm" data-action="confirmRemoveMateria" data-val="${m.id}" style="background:var(--rose);border-color:var(--rose-text)">Rimuovi</button>
+      </div>`);
+    return;
+  }
+  if(a==='confirmRemoveMateria'){ state.materie=state.materie.filter(x=>x.id!==v); closeModal(); render(); toast('Materia rimossa'); return; }
+  if(a==='rigenera'){ state.portfolioAt=Date.now(); render(); toast('Bozza rigenerata dai tuoi dati'); return; }
   if(a==='condividi'){
     state.shareWithTutor=true;
     toast('Portfolio condiviso con il tutor');
@@ -185,6 +261,69 @@ document.addEventListener('click',e=>{
     return;
   }
 });
+
+function validHttpUrl(raw){
+  try{ const u=new URL(String(raw).trim()); if(u.protocol==='http:'||u.protocol==='https:') return u.href; }catch(e){}
+  return null;
+}
+async function uploadAttachment(file,kind){
+  const fd=new FormData(); fd.append('file',file); fd.append('kind',kind);
+  try{
+    const r=await fetch('/api/attachments',{method:'POST',body:fd});
+    const data=await r.json().catch(()=>null);
+    if(!r.ok) throw new Error(data?.error?.message||'Caricamento non riuscito');
+    return data;
+  }catch(e){
+    toast(e instanceof TypeError?'Il server non risponde: non posso salvare il file':e.message);
+    return null;
+  }
+}
+async function savePendingEvidence(p){
+  let link=null, attachment=null;
+  if(p.tipo==='link'){
+    const raw=$('p-link')?$('p-link').value.trim():'';
+    if(raw){ link=validHttpUrl(raw); if(!link){ toast('Inserisci un link valido (http/https)'); return; } }
+  }
+  if(p.tipo==='foto'){
+    const f=$('p-foto')?.files[0];
+    if(f){
+      if(f.size>5*1024*1024){ toast('La foto è troppo grande (massimo 5 MB)'); return; }
+      attachment=await uploadAttachment(f,'foto'); if(!attachment) return;
+    }
+  }
+  if(p.tipo==='voce'){
+    const f=$('p-voce')?.files[0];
+    if(f){
+      if(f.size>10*1024*1024){ toast('L\'audio è troppo grande (massimo 10 MB)'); return; }
+      attachment=await uploadAttachment(f,'voce'); if(!attachment) return;
+    }
+  }
+  const ev={id:'e'+Date.now(),ambito:state.pendingAmbito||'scuola',titolo:p.titolo,descrizione:p.desc,tipo:p.tipo,
+    data:$('p-data').value||'2026-11-10',comp:p.res.comp.map(c=>c.id),dims:p.res.dims,conf:p.res.conf,
+    perche:p.res.perche,corretta:!!p.res.corretta,nuovo:true};
+  if(link) ev.link=link;
+  if(attachment) ev.attachment=attachment;
+  state.evidences.unshift(ev);
+  p.res.comp.forEach(c=>{state.prove[c.id]=(state.prove[c.id]||0)+1;});
+  state.pending=null; state.prefill=null; state.pendingAmbito=null;
+  toast('Prova aggiunta al tuo diario');
+  navigate('#/esperienze');
+}
+function previewFile(file,targetId,kind){
+  const box=$(targetId); if(!box) return;
+  box.innerHTML='';
+  if(!file) return;
+  const url=URL.createObjectURL(file);
+  if(kind==='image'){
+    const img=document.createElement('img');
+    img.src=url; img.alt='Anteprima'; img.style.cssText='max-width:100%;max-height:220px;border-radius:12px;border:1px solid var(--line)';
+    box.appendChild(img);
+  }else{
+    const audio=document.createElement('audio');
+    audio.controls=true; audio.src=url; audio.style.width='100%';
+    box.appendChild(audio);
+  }
+}
 
 /* "Analizza con l'AI": modello locale via /api/analyze, con ripiego sull'analisi simulata */
 let analisiCtrl=null;
@@ -220,13 +359,13 @@ async function analizzaConAI(titolo,desc,tipo,btn){
 function openCorreggi(target){
   const cur=target==='pending'?(state.pending?.res.comp||[]).map(c=>c.id):(state.evidences.find(x=>x.id===target)?.comp||[]);
   openModal(`
-    <button class="modal-close" data-action="closeModal">✕</button>
+    <button class="modal-close" data-action="closeModal" aria-label="Chiudi">✕</button>
     <div style="font-weight:700;font-size:16px;margin-bottom:4px">Correggi le competenze</div>
     <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;line-height:1.5">Scegli da 1 a 3 competenze che questa prova racconta davvero. Conta il tuo punto di vista.</div>
     <div id="corrComp" style="display:flex;gap:8px;flex-wrap:wrap">
       ${EU.map(c=>`<button class="segbtn comp-toggle ${cur.includes(c.id)?'on':''}" data-action="toggleComp" data-comp="${c.id}" style="--cc:${c.color}">${c.nome}</button>`).join('')}
     </div>
-    <div id="corrWarn" class="section-sub" style="color:var(--rose);margin-top:10px" hidden>Scegli da 1 a 3 competenze.</div>
+    <div id="corrWarn" class="section-sub" style="color:var(--rose-text);margin-top:10px" hidden>Scegli da 1 a 3 competenze.</div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
       <button class="btn sm" data-action="closeModal">Annulla</button>
       <button class="btn primary sm" data-action="salvaCorrezione" data-id="${target}">Salva</button>
@@ -264,7 +403,7 @@ function renderProfileEditor(){
     ?`<div class="form-row"><label for="pf-${k}">${l}</label><textarea id="pf-${k}" rows="2">${escHTML(p[k]||'')}</textarea></div>`
     :`<div class="form-row"><label for="pf-${k}">${l}</label><input id="pf-${k}" type="${t||'text'}" value="${escHTML(p[k]||'')}"/></div>`;
   return `
-    <button class="modal-close" data-action="closeModal">✕</button>
+    <button class="modal-close" data-action="closeModal" aria-label="Chiudi">✕</button>
     <div style="font-weight:700;font-size:16px;margin-bottom:4px">Il mio profilo</div>
     <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px">Nome, scuola, classe, città, presentazione, sport e hobby compaiono nel tuo passaporto, che gli altri possono vedere ma solo tu puoi modificare. Email, telefono e data di nascita servono solo per il CV.</div>
     <div class="profile-grid">${PROFILE_FIELDS.map(field).join('')}</div>
@@ -307,61 +446,192 @@ function refreshSettings(){
 if(!location.hash) location.hash='#/passaporto';
 state.route=resolveRoute(location.hash.replace('#/','')||'passaporto');
 
-function saveState(){
+function snapshotState(){
+  return {
+    prove:state.prove, evidences:state.evidences, diarioFilter:state.diarioFilter,
+    privacy:state.privacy, dailyTip:state.dailyTip,
+    theme:state.theme, streak:state.streak, textSize:state.textSize,
+    materie:state.materie, profilo:state.profilo, ruolo:state.ruolo, planner:state.planner,
+    docEvidenza:state.docEvidenza, recapPeriodo:state.recapPeriodo,
+    isSample:state.isSample, sampleBanner:state.sampleBanner, portfolioAt:state.portfolioAt,
+    shareWithTutor:state.shareWithTutor, espFiltro:state.espFiltro||null
+  };
+}
+function downloadStateExport(){
+  const payload={app:'Talent Radar',version:1,exported_at:new Date().toISOString(),user:currentUserName(),state:snapshotState()};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='talent-radar-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  toast('Backup scaricato');
+}
+function mergeImportedState(p){
+  if(!p || typeof p!=='object') throw new Error('bad');
+  let added=0;
+  if(Array.isArray(p.evidences)){
+    const ids=new Set(state.evidences.map(e=>e.id));
+    p.evidences.forEach(e=>{
+      if(!e || !e.id || ids.has(e.id)) return;
+      state.evidences.push(e); ids.add(e.id); added++;
+      (e.comp||[]).forEach(cid=>{ state.prove[cid]=(state.prove[cid]||0)+1; });
+    });
+  }
+  if(Array.isArray(p.materie)){
+    const ids=new Set(state.materie.map(m=>m.id));
+    p.materie.forEach(m=>{ if(m && m.id && !ids.has(m.id)){ state.materie.push(m); ids.add(m.id); } });
+  }
+  if(Array.isArray(p.planner)){
+    const ids=new Set(state.planner.map(x=>x.id));
+    p.planner.forEach(x=>{ if(x && x.id && !ids.has(x.id)) state.planner.push(x); });
+  }
+  if(Array.isArray(p.docEvidenza)){
+    p.docEvidenza.forEach(id=>{ if(!state.docEvidenza.includes(id)) state.docEvidenza.push(id); });
+  }
+  if(p.profilo && typeof p.profilo==='object'){
+    Object.keys(p.profilo).forEach(k=>{ if(!state.profilo[k]) state.profilo[k]=p.profilo[k]; });
+  }
+  return added;
+}
+async function importStateFile(file){
+  if(!file) return;
   try{
-    localStorage.setItem('talent_state', JSON.stringify({
-      prove:state.prove, evidences:state.evidences, diarioFilter:state.diarioFilter,
-      privacy:state.privacy, dailyTip:state.dailyTip, mascotMood:state.mascotMood,
-      theme:state.theme, streak:state.streak, reduceMotion:state.reduceMotion, textSize:state.textSize,
-      materie:state.materie, profilo:state.profilo, ruolo:state.ruolo, planner:state.planner,
-      docEvidenza:state.docEvidenza, recapPeriodo:state.recapPeriodo
-    }));
-  }catch(e){}
+    const data=JSON.parse(await file.text());
+    const incoming=data.state||data;
+    if(!incoming || (!incoming.evidences && !incoming.materie && !incoming.planner)) throw new Error('bad');
+    const added=mergeImportedState(incoming);
+    render();
+    toast(added?('Importate '+added+' esperienze'):'Dati importati');
+  }catch(e){ toast('File di backup non valido'); }
+}
+function confirmDeleteAll(){
+  openModal(`
+    <button class="modal-close" data-action="closeModal" aria-label="Chiudi">✕</button>
+    <div style="font-weight:700;font-size:16px;margin-bottom:6px">Eliminare tutti i tuoi dati?</div>
+    <p style="font-size:13px;color:var(--text2);line-height:1.55">Verranno cancellati prove, materie, planner e impostazioni, sia nel browser sia sul server. L'account resta attivo.</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn sm" data-action="closeModal">Annulla</button>
+      <button class="btn primary sm" data-action="confirmDeleteAll" style="background:var(--rose);border-color:var(--rose-text)">Elimina tutto</button>
+    </div>`);
+}
+async function deleteAllData(){
+  closeModal();
+  const t=authToken();
+  if(t){ try{ await fetch('/api/state',{method:'DELETE',headers:{'Authorization':'Bearer '+t}}); }catch(e){} }
+  try{ localStorage.removeItem('talent_state'); }catch(e){}
+  location.reload();
+}
+document.addEventListener('change',e=>{
+  if(e.target.id==='importState'){ importStateFile(e.target.files[0]); e.target.value=''; }
+  if(e.target.id==='p-foto'){ previewFile(e.target.files[0],'fotoPreview','image'); }
+  if(e.target.id==='p-voce'){ previewFile(e.target.files[0],'vocePreview','audio'); }
+});
+let saveTimer=null;
+let stateReady=false;
+function authToken(){ try{ return localStorage.getItem('talent_token'); }catch(e){ return null; } }
+function setSaveStatus(status){
+  const el=$('saveStatus'); if(!el) return;
+  if(status==='saving'){ el.hidden=false; el.textContent='Salvataggio…'; el.className='save-status saving'; }
+  else if(status==='saved'){
+    el.hidden=false; el.textContent='✓ Salvato'; el.className='save-status saved';
+    clearTimeout(el._t); el._t=setTimeout(()=>{ el.hidden=true; },2500);
+  }
+  else if(status==='error'){ el.hidden=false; el.textContent='Non salvato'; el.className='save-status error'; }
+  else { el.hidden=true; }
+}
+function pushState(){
+  if(!stateReady) return;
+  const t=authToken(); if(!t){ setSaveStatus('off'); return; }
+  setSaveStatus('saving');
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{
+    fetch('/api/state',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+t},
+      body:JSON.stringify({state:snapshotState()})})
+      .then(r=>setSaveStatus(r.ok?'saved':'error'))
+      .catch(()=>setSaveStatus('error'));
+  },700);
+}
+function applySavedState(p){
+  if(!p) return;
+  state.prove=p.prove||state.prove;
+  state.evidences=p.evidences||state.evidences;
+  state.diarioFilter=p.diarioFilter===undefined?null:p.diarioFilter;
+  state.privacy=p.privacy||state.privacy;
+  state.dailyTip=p.dailyTip||state.dailyTip;
+
+  state.theme=p.theme||'light';
+  state.streak=p.streak||state.streak;
+
+  state.textSize=p.textSize||'normale';
+  if(Array.isArray(p.materie)) state.materie=p.materie;
+  if(p.profilo) state.profilo={...state.profilo,...p.profilo};
+  if(p.ruolo) state.ruolo=p.ruolo;
+  if(Array.isArray(p.planner)) state.planner=p.planner;
+  if(Array.isArray(p.docEvidenza)) state.docEvidenza=p.docEvidenza;
+  if(p.recapPeriodo) state.recapPeriodo=p.recapPeriodo;
+  if(typeof p.isSample==='boolean') state.isSample=p.isSample;
+  if(typeof p.sampleBanner==='boolean') state.sampleBanner=p.sampleBanner;
+  if(p.portfolioAt) state.portfolioAt=p.portfolioAt;
+  if(typeof p.shareWithTutor==='boolean') state.shareWithTutor=p.shareWithTutor;
+  if(p.espFiltro) state.espFiltro=p.espFiltro;
+
+  // Prove salvate prima che esistesse l'ambito: quelle note fuori da scuola, le altre a scuola
+  const extra=['e2','e4','e7'];
+  state.evidences.forEach(e=>{ if(!e.ambito) e.ambito=extra.includes(e.id)?'extra':'scuola'; });
+}
+function saveState(){
+  try{ localStorage.setItem('talent_state', JSON.stringify(snapshotState())); }catch(e){}
+  pushState();
 }
 function loadState(){
   try{
     const raw=localStorage.getItem('talent_state');
-    if(raw){
-      const p=JSON.parse(raw);
-      state.prove=p.prove||state.prove;
-      state.evidences=p.evidences||state.evidences;
-      state.diarioFilter=p.diarioFilter===undefined?null:p.diarioFilter;
-      state.privacy=p.privacy||state.privacy;
-      state.dailyTip=p.dailyTip||state.dailyTip;
-      state.mascotMood=p.mascotMood||'felice';
-      state.theme=p.theme||'light';
-      state.streak=p.streak||state.streak;
-      state.reduceMotion=!!p.reduceMotion;
-      state.textSize=p.textSize||'normale';
-      if(Array.isArray(p.materie)) state.materie=p.materie;
-      if(p.profilo) state.profilo={...state.profilo,...p.profilo};
-      if(p.ruolo) state.ruolo=p.ruolo;
-      if(Array.isArray(p.planner)) state.planner=p.planner;
-      if(Array.isArray(p.docEvidenza)) state.docEvidenza=p.docEvidenza;
-      if(p.recapPeriodo) state.recapPeriodo=p.recapPeriodo;
-      if(!['felice','curioso'].includes(state.mascotMood)) state.mascotMood='felice';
-      // Prove salvate prima che esistesse l'ambito: quelle note fuori da scuola, le altre a scuola
-      const extra=['e2','e4','e7'];
-      state.evidences.forEach(e=>{ if(!e.ambito) e.ambito=extra.includes(e.id)?'extra':'scuola'; });
-    }
+    if(raw) applySavedState(JSON.parse(raw));
   }catch(e){}
+}
+async function loadRemoteState(){
+  const t=authToken();
+  if(t){
+    try{
+      const r=await fetch('/api/state',{headers:{'Authorization':'Bearer '+t}});
+      if(r.status===401){
+        try{ localStorage.removeItem('talent_token'); localStorage.removeItem('talent_auth'); }catch(e){}
+        if(typeof showGate==='function') showGate('login');
+      }else if(r.ok){
+        const data=await r.json();
+        if(data && data.state) applySavedState(data.state);
+      }
+    }catch(e){}
+  }
+  stateReady=true;
+  return !!t;
 }
 function applyVisuals(){
   const theme=state.theme||'light';
   document.documentElement.setAttribute('data-theme',theme);
-  document.body.classList.toggle('reduce-motion', !!state.reduceMotion);
   document.body.classList.toggle('text-large', state.textSize==='grande');
 }
-function closeProfile(){ const m=$('profileMenu'); if(m) m.hidden=true; }
+function closeProfile(){ const m=$('profileMenu'); if(m) m.hidden=true; const b=document.querySelector('.profilebtn'); if(b) b.setAttribute('aria-expanded','false'); }
 document.addEventListener('click',e=>{
   if(!e.target.closest('.profile')){
     const m=$('profileMenu'); if(m && !m.hidden) m.hidden=true;
   }
 });
+function renderSampleBanner(){
+  const el=$('sampleBanner'); if(!el) return;
+  if(!state.sampleBanner){ el.hidden=true; el.innerHTML=''; return; }
+  el.hidden=false;
+  el.innerHTML='<div class="sb-inner"><div class="sb-txt"><strong>Dati di esempio.</strong> Il passaporto è precaricato per la demo: puoi esplorarlo o partire da zero.</div><div class="sb-actions"><button class="btn primary sm" data-action="startFresh">Inizia da zero</button><button class="btn sm" data-action="hideSample">Ho capito</button></div></div>';
+}
+function currentUserName(){
+  try{ const a=JSON.parse(localStorage.getItem('talent_auth')||'{}'); return (a.user&&(a.user.display_name||a.user.username))||''; }catch(e){ return ''; }
+}
 function render(){
   state.route=resolveRoute(state.route);
   applyVisuals();
   renderShell();
+  renderSampleBanner();
   $('view').innerHTML=ROUTES[state.route]();
   if(state.route==='competenze'){
     const vals=EU.map(c=>scoreOf(c.id));
@@ -373,3 +643,5 @@ function render(){
 loadState();
 applyVisuals();
 render();
+playScan();
+loadRemoteState().then(()=>{ if(authToken()) render(); });

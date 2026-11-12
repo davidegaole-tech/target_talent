@@ -1,26 +1,26 @@
 /* ---------- DATA ---------- */
 const EU = [
- {id:'alfabetica', nome:'Alfabetica funzionale', short:'Alfabetica', color:'#6366f1'},
- {id:'multilingue', nome:'Multilinguistica', short:'Multilingue', color:'#0ea5e9'},
- {id:'stem', nome:'Matematica, scienze e tecnologie', short:'STEM', color:'#14b8a6'},
- {id:'digitale', nome:'Digitale', short:'Digitale', color:'#8b5cf6'},
- {id:'personale', nome:'Personale e sociale', short:'Personale', color:'#f59e0b'},
- {id:'cittadinanza', nome:'Cittadinanza', short:'Cittadinanza', color:'#ef4444'},
- {id:'imprenditoriale', nome:'Imprenditoriale', short:'Imprendit.', color:'#ec4899'},
- {id:'cultura', nome:'Consapevolezza culturale', short:'Cultura', color:'#84cc16'}
+ {id:'alfabetica', nome:'Alfabetica funzionale', short:'Alfabetica', color:'#2f4b7c'},
+ {id:'multilingue', nome:'Multilinguistica', short:'Multilingue', color:'#2f6f9f'},
+ {id:'stem', nome:'Matematica, scienze e tecnologie', short:'STEM', color:'#0e6b6b'},
+ {id:'digitale', nome:'Digitale', short:'Digitale', color:'#5b4b8a'},
+ {id:'personale', nome:'Personale e sociale', short:'Personale', color:'#a61b3f'},
+ {id:'cittadinanza', nome:'Cittadinanza', short:'Cittadinanza', color:'#7a2e4a'},
+ {id:'imprenditoriale', nome:'Imprenditoriale', short:'Imprendit.', color:'#b0576e'},
+ {id:'cultura', nome:'Consapevolezza culturale', short:'Cultura', color:'#4f7a5a'}
 ];
 const DIMS = [
- {id:'essere', nome:'Essere', short:'Essere', color:'#8b5cf6', desc:'Chi sei: valori, carattere, motivazioni'},
- {id:'fare', nome:'Fare', short:'Fare', color:'#14b8a6', desc:'Cosa realizzi: progetti, attività, risultati'},
- {id:'lavorare', nome:'Lavorare', short:'Lavorare', color:'#f59e0b', desc:'Come operi: metodo, team, leadership'}
+ {id:'essere', nome:'Essere', short:'Essere', color:'#5b4b8a', desc:'Chi sei: valori, carattere, motivazioni'},
+ {id:'fare', nome:'Fare', short:'Fare', color:'#0e6b6b', desc:'Cosa realizzi: progetti, attività, risultati'},
+ {id:'lavorare', nome:'Lavorare', short:'Lavorare', color:'#a61b3f', desc:'Come operi: metodo, team, leadership'}
 ];
 const COMP_TO_DIM = {alfabetica:'fare',multilingue:'fare',stem:'fare',digitale:'lavorare',personale:'essere',cittadinanza:'essere',imprenditoriale:'lavorare',cultura:'essere'};
 const COL = Object.fromEntries(EU.map(c=>[c.id,c.color]));
 const MESI=['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
 function fmtDate(iso){const d=new Date(iso);return d.getDate()+' '+MESI[d.getMonth()];}
-function scoreOf(id){return Math.min(96, 30 + (state.prove[id]||0)*8);}
+function scoreOf(id){const n=state.prove[id]||0;return n?Math.min(96,30+n*8):0;}
 function dimCount(id){return state.evidences.reduce((a,e)=>a+((e.dims||[]).includes(id)?1:0),0);}
-function dimScore(id){return Math.min(96, 25 + dimCount(id)*12);}
+function dimScore(id){const n=dimCount(id);return n?Math.min(96,25+n*12):0;}
 function dimsOf(comp){return [...new Set((comp||[]).map(id=>COMP_TO_DIM[id]).filter(Boolean))];}
 
 const ICONS = {
@@ -87,34 +87,15 @@ const state = {
   streak:5,
   lastActive:'2026-11-10',
   dailyTip:'Oggi prova a documentare un\'esperienza sportiva o un hobby: diventa una prova nel tuo passaporto.',
-  mascotMood:'felice',
   theme:'light',
-  reduceMotion:false,
+  isSample:true,
+  sampleBanner:true,
+  portfolioAt:null,
   textSize:'normale',
-  socialTab:'search',
-  socialQuery:'',
-  activeChat:null,
-  requestsIn:['u5'],
-  requestsOut:['u6'],
-  directory:[
-   {id:'u2',name:'Marco Bianchi',role:'Studente · 18 · ripara bici',color:'#0ea5e9',relation:'friend'},
-   {id:'u3',name:'Sara Conti',role:'Impiegata · 34 · organizza eventi',color:'#f59e0b',relation:'friend'},
-   {id:'u4',name:'Luca Romano',role:'Operaio · 47 · tornio CNC',color:'#22c55e',relation:'friend'},
-   {id:'u5',name:'Elena Greco',role:'Studentessa · 16 · pallavolo',color:'#ec4899',relation:'incoming'},
-   {id:'u6',name:'Davide Ferraro',role:'Studente · 17 · robotica',color:'#8b5cf6',relation:'outgoing'},
-   {id:'u7',name:'Anna Ricci',role:'Docente · orientamento',color:'#14b8a6',relation:'none'},
-   {id:'u8',name:'Pietro Sala',role:'Tutor ITS Academy',color:'#f97316',relation:'none'},
-   {id:'u9',name:'Chiara Neri',role:'Sportiva · 20 · atletica',color:'#84cc16',relation:'none'}
-  ],
-  chats:{
-   u2:[{from:'them',text:'Ciao! Ho visto che monti video: anche a me piace. Consigli su CapCut?',time:'10:24'}],
-   u3:[{from:'me',text:'Grazie per il feedback sull\'evento!',time:'09:02'},{from:'them',text:'Figurati, sei stata bravissima a coordinare tutto.',time:'09:10'}],
-   u4:[{from:'them',text:'Ciao Giulia, mi hanno parlato della tua squadra di pallavolo.',time:'ieri'}]
-  },
   materie:[
-   {id:'m1',nome:'Matematica',color:'#6366f1',voti:[{v:8,tipo:'scritto',data:'2026-10-02'},{v:7.5,tipo:'orale',data:'2026-10-15'},{v:9,tipo:'scritto',data:'2026-11-05'}]},
-   {id:'m2',nome:'Italiano',color:'#ec4899',voti:[{v:7,tipo:'orale',data:'2026-10-10'},{v:8,tipo:'scritto',data:'2026-11-02'}]},
-   {id:'m3',nome:'Scienze',color:'#14b8a6',voti:[{v:6.5,tipo:'pratico',data:'2026-10-20'},{v:7.5,tipo:'scritto',data:'2026-11-08'}]}
+   {id:'m1',nome:'Matematica',color:'#2f4b7c',voti:[{v:8,tipo:'scritto',data:'2026-10-02'},{v:7.5,tipo:'orale',data:'2026-10-15'},{v:9,tipo:'scritto',data:'2026-11-05'}]},
+   {id:'m2',nome:'Italiano',color:'#a61b3f',voti:[{v:7,tipo:'orale',data:'2026-10-10'},{v:8,tipo:'scritto',data:'2026-11-02'}]},
+   {id:'m3',nome:'Scienze',color:'#0e6b6b',voti:[{v:6.5,tipo:'pratico',data:'2026-10-20'},{v:7.5,tipo:'scritto',data:'2026-11-08'}]}
   ]
 };
 

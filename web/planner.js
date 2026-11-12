@@ -63,7 +63,7 @@ function planSection(titolo,sub,lista,vuoto){
 function planItem(p){
   const g=p.data?giorniA(p.data):null;
   const urgente=!p.fatto&&g!=null&&g<=7;
-  const chips=(p.comp||[]).map(id=>{const c=EU.find(x=>x.id===id);return c?'<span class="chip" style="background:'+c.color+'1f;color:'+c.color+'">'+c.short+'</span>':'';}).join('');
+  const chips=(p.comp||[]).map(id=>{const c=EU.find(x=>x.id===id);return c?'<span class="chip" style="background:'+c.color+'1f;color:var(--text2)">'+c.short+'</span>':'';}).join('');
   return `
   <div class="plan-item ${p.fatto?'fatto':''}">
     <button class="plan-check ${p.fatto?'on':''}" data-action="planDone" data-id="${p.id}" aria-pressed="${!!p.fatto}" title="${p.fatto?'Segna come da fare':'Segna come fatto'}">${p.fatto?icon('check',14):''}</button>

@@ -53,7 +53,7 @@ Per una visita guidata premi **Come funziona** in fondo al menu a sinistra.
 - **Certificazioni ed esperienze**: scrivi esperienze (a scuola o fuori) e carica certificati e attestati (PDF, DOCX, TXT, JPG, PNG, massimo 10 MB). Sergio li analizza; con ★ scegli cosa mettere in evidenza nel passaporto.
 - **Appunti**: carica o incolla appunti e chiedi a Sergio riassunto, quiz o flashcard.
 - **Voti** (studenti): materie e voti con il grafico dell'andamento per ogni materia.
-- **CV e portfolio**, **Amici**: come prima. Dal pannello Competenze si arriva anche a **Orientamento**.
+- **CV e portfolio**: come prima. Dal pannello Competenze si arriva anche a **Orientamento**.
 
 ## Analizza con l'AI
 

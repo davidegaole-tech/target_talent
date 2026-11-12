@@ -1,10 +1,10 @@
 /* ---------- PAGES ---------- */
 /* Titoli assegnati quando una competenza è forte (punteggio ≥ 70) */
 const TITOLI={
-  digitale:{t:'Asso dell\'Informatica',e:'💻'}, stem:{t:'Mente scientifica',e:'🔬'},
-  alfabetica:{t:'Penna brillante',e:'✍️'}, multilingue:{t:'Poliglotta',e:'🌍'},
-  personale:{t:'Spirito di squadra',e:'🤝'}, cittadinanza:{t:'Cittadino attivo',e:'🏛️'},
-  imprenditoriale:{t:'Leader nato',e:'🚀'}, cultura:{t:'Anima creativa',e:'🎨'}
+  digitale:{t:'Asso dell\'Informatica'}, stem:{t:'Mente scientifica'},
+  alfabetica:{t:'Penna brillante'}, multilingue:{t:'Poliglotta'},
+  personale:{t:'Spirito di squadra'}, cittadinanza:{t:'Cittadino attivo'},
+  imprenditoriale:{t:'Leader nato'}, cultura:{t:'Anima creativa'}
 };
 const COMP_TECNICHE=['stem','digitale','multilingue','alfabetica'];
 const COMP_SOCIO=['personale','cittadinanza','imprenditoriale','cultura'];
@@ -25,12 +25,23 @@ function renderPassaporto(){
   const p=state.profilo, owner=state.passView!=='public';
   const certEv=(DOCS.items||[]).filter(d=>state.docEvidenza.includes(d.id));
   const titoli=titoliOttenuti();
-  const chipComp=id=>{const c=EU.find(x=>x.id===id),v=scoreOf(id);return `<div class="pp-comp"><span class="pp-dot" style="background:${c.color}"></span><span class="pp-comp-n">${c.nome}</span><span class="pp-lv" style="color:${c.color}">${livello(v)}</span></div>`;};
+  const chipComp=id=>{const c=EU.find(x=>x.id===id),v=scoreOf(id);return `<div class="pp-comp"><span class="pp-dot" style="background:${c.color}"></span><span class="pp-comp-n">${c.nome}</span><span class="pp-lv">${livello(v)}</span></div>`;};
   const tags=v=>(v||'').split(/[,;\n]/).map(x=>x.trim()).filter(Boolean);
   const sport=tags(p.sport), hobby=tags(p.interessi).filter(h=>!sport.some(x=>x.toLowerCase()===h.toLowerCase()));
   const rc=recapAttivita();
   const studio=[p.scuola, p.classe?'classe '+p.classe:''].filter(Boolean).join(' · ');
   return `
+  ${!state.evidences.length?`<div class="card pp-empty">
+    <div class="pp-empty-ico">${icon('sparkles',26)}</div>
+    <div>
+      <div class="section-title">Il tuo passaporto è vuoto</div>
+      <div class="section-sub">Aggiungi la prima prova: un progetto, uno sport, un'esperienza di volontariato. Il resto cresce da lì.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <button class="btn primary sm" data-action="goNuova">+ Aggiungi la prima prova</button>
+        <button class="btn sm" data-action="startTour">Come funziona</button>
+      </div>
+    </div>
+  </div>`:''}
   ${owner?'':`<div class="pp-preview">Stai vedendo il tuo passaporto come lo vedono gli altri. <button class="btn sm" data-action="passView" data-val="owner">Torna a modificare</button></div>`}
   <div class="card pp-head">
     <div class="pp-avatar">${escHTML(iniziali())}</div>
@@ -52,7 +63,7 @@ function renderPassaporto(){
   ${titoli.length?`<div class="card" style="margin-top:16px">
     <div class="section-title">Titoli</div>
     <div class="section-sub">Riconoscimenti che nascono dalle tue esperienze</div>
-    <div class="pp-titoli">${titoli.map(t=>`<div class="pp-titolo" style="--tc:${COL[t.id]}"><span class="pp-te">${t.e}</span><span>${t.t}</span></div>`).join('')}</div>
+    <div class="pp-titoli">${titoli.map(t=>`<div class="pp-titolo" style="--tc:${COL[t.id]}"><span class="pp-dot" style="background:${COL[t.id]}"></span><span>${t.t}</span></div>`).join('')}</div>
   </div>`:''}
 
   <div class="grid g2" style="margin-top:16px">
@@ -71,14 +82,14 @@ function renderPassaporto(){
   ${certEv.length?`<div class="card" style="margin-top:16px">
     <div class="section-title">Certificazioni in evidenza</div>
     <div class="section-sub">Scelte da ${owner?'te':escHTML(p.nome||'questa persona')}</div>
-    <div class="pp-recap">${certEv.map(d=>`<div class="pp-rc" style="cursor:default"><div class="pp-rc-t">🏅 ${escHTML(d.title)}</div><div class="pp-rc-d">${DOC_KINDS[d.kind]||'Documento'}${d.date?' · '+d.date.slice(0,4):''}</div></div>`).join('')}</div>
+    <div class="pp-recap">${certEv.map(d=>`<div class="pp-rc" style="cursor:default"><div class="pp-rc-t"><span class="pp-dot" style="background:var(--amber)"></span> ${escHTML(d.title)}</div><div class="pp-rc-d">${DOC_KINDS[d.kind]||'Documento'}${d.date?' · '+d.date.slice(0,4):''}</div></div>`).join('')}</div>
   </div>`:''}
 
   <div class="card" style="margin-top:16px">
     <div class="section-title">Sport e hobby</div>
     <div class="section-sub">Quello che fai per passione</div>
     ${sport.length||hobby.length?`<div class="pp-tags">
-      ${sport.map(t=>`<span class="pp-tag sport">🏅 ${escHTML(t)}</span>`).join('')}
+      ${sport.map(t=>`<span class="pp-tag sport">${escHTML(t)}</span>`).join('')}
       ${hobby.map(t=>`<span class="pp-tag">${escHTML(t)}</span>`).join('')}
     </div>`:`<p class="section-sub">${owner?'Aggiungili con <strong>Modifica</strong>.':'Nessuno indicato.'}</p>`}
   </div>
@@ -96,7 +107,7 @@ function renderPassaporto(){
     </div>
     ${rc.lista.length?`<div class="pp-recap">${rc.lista.map(e=>`
       <div class="pp-rc" data-action="openEv" data-id="${e.id}">
-        <div class="pp-rc-t">${e.evidenza?'★ ':''}${e.titolo}</div>
+        <div class="pp-rc-t">${e.evidenza?'★ ':''}${escHTML(e.titolo)}</div>
         <div class="pp-rc-d">${fmtDate(e.data)} · ${e.comp.map(id=>EU.find(c=>c.id===id)?.short).filter(Boolean).join(', ')}</div>
       </div>`).join('')}</div>`:`<p class="section-sub" style="margin-top:8px">Nessuna attività in questo periodo.</p>`}
     ${owner&&!rc.scelte&&rc.lista.length?`<p style="font-size:11.5px;color:var(--muted);margin-top:10px">Suggerimento: in <a href="#/esperienze" style="color:var(--accent)">Certificazioni ed esperienze</a> premi ★ sulle attività a cui tieni di più, e compariranno qui.</p>`:''}
@@ -104,19 +115,21 @@ function renderPassaporto(){
 }
 function renderEvidenceCard(e){
   const tipoIcon={foto:'image',link:'link',testo:'text',voce:'mic',documento:'file'}[e.tipo]||'text';
-  const chips=e.comp.map(id=>{const c=EU.find(x=>x.id===id);return '<span class="chip" style="background:'+c.color+'1f;color:'+c.color+'">'+c.short+'</span>';}).join('');
-  const dimchips=(e.dims||[]).map(id=>{const d=DIMS.find(x=>x.id===id);return '<span class="chip" style="background:'+d.color+'1f;color:'+d.color+'">'+d.nome+'</span>';}).join('');
+  const chips=e.comp.map(id=>{const c=EU.find(x=>x.id===id);return '<span class="chip" style="background:'+c.color+'1f;color:var(--text2)">'+c.short+'</span>';}).join('');
+  const dimchips=(e.dims||[]).map(id=>{const d=DIMS.find(x=>x.id===id);return '<span class="chip" style="background:'+d.color+'1f;color:var(--text2)">'+d.nome+'</span>';}).join('');
   return `<div class="evidence" data-action="openEv" data-id="${e.id}">
     <div class="evidence-head">
       <div class="evidence-icon">${icon(tipoIcon,16)}</div>
       <div style="flex:1;min-width:0">
-        <div class="evidence-title">${e.titolo}</div>
+        <div class="evidence-title">${escHTML(e.titolo)}</div>
         <div class="evidence-date">${fmtDate(e.data)} · ${e.tipo}</div>
       </div>
       <span class="conf">${(e.ambito==='extra'?'fuori da scuola':e.ambito==='doc'?'documento':'a scuola')}</span>
-      <button class="star ${e.evidenza?'on':''}" data-action="toggleStar" data-id="${e.id}" title="${e.evidenza?'Togli dal passaporto':'Metti in evidenza nel passaporto'}" aria-pressed="${!!e.evidenza}">★</button>
+      <button class="star ${e.evidenza?'on':''}" data-action="toggleStar" data-id="${e.id}" title="${e.evidenza?'Togli dal passaporto':'Metti in evidenza nel passaporto'}" aria-label="${e.evidenza?'Togli dal passaporto':'Metti in evidenza nel passaporto'}" aria-pressed="${!!e.evidenza}"><span aria-hidden="true">★</span></button>
     </div>
-    <div class="evidence-desc">${e.descrizione}</div>
+    <div class="evidence-desc">${escHTML(e.descrizione)}</div>
+    ${e.attachment&&String(e.attachment.mime||'').startsWith('image/')?`<img src="${escHTML(e.attachment.url)}" alt="" style="width:100%;height:120px;object-fit:cover;border-radius:10px;margin-top:9px;border:1px solid var(--line)"/>`:''}
+    ${e.attachment&&String(e.attachment.mime||'').startsWith('audio/')?`<div style="margin-top:9px"><audio controls src="${escHTML(e.attachment.url)}" style="width:100%" onclick="event.stopPropagation()"></audio></div>`:''}
     <div class="evidence-foot">${dimchips}${chips}<span style="font-size:10.5px;color:var(--label);margin-left:auto">${e.corretta?'competenze scelte da te':'confidenza '+e.conf}</span></div>
   </div>`;
 }
@@ -149,16 +162,33 @@ function renderNuova(){
         </div>
       </div>
       <div class="form-row">
-        <label>Titolo</label>
+        <label for="p-titolo">Titolo</label>
         <input id="p-titolo" placeholder="es. Robot per la gara regionale" value="${state.prefill?escHTML(state.prefill.titolo):''}"/>
       </div>
       <div class="form-row">
-        <label>Descrizione (2-4 righe)</label>
+        <label for="p-desc">Descrizione (2-4 righe)</label>
         <textarea id="p-desc" placeholder="Cosa hai fatto, come, con chi, cosa hai imparato...">${state.prefill?escHTML(state.prefill.desc):''}</textarea>
       </div>
       <div class="form-row">
-        <label>Data</label>
+        <label for="p-data">Data</label>
         <input type="date" id="p-data" value="2026-11-10"/>
+      </div>
+      <div class="form-row" id="extra-foto" ${tipo==='foto'?'':'hidden'}>
+        <label for="p-foto">Foto</label>
+        <input type="file" id="p-foto" accept="image/jpeg,image/png,image/webp,image/gif"/>
+        <div id="fotoPreview" style="margin-top:8px"></div>
+        <div style="font-size:11.5px;color:var(--muted)">JPG, PNG, WEBP o GIF · massimo 5 MB.</div>
+      </div>
+      <div class="form-row" id="extra-link" ${tipo==='link'?'':'hidden'}>
+        <label for="p-link">Link</label>
+        <input id="p-link" type="url" placeholder="https://..." autocomplete="off"/>
+        <div style="font-size:11.5px;color:var(--muted)">Incolla un link pubblico (http/https).</div>
+      </div>
+      <div class="form-row" id="extra-voce" ${tipo==='voce'?'':'hidden'}>
+        <label for="p-voce">Audio</label>
+        <input type="file" id="p-voce" accept="audio/*"/>
+        <div id="vocePreview" style="margin-top:8px"></div>
+        <div style="font-size:11.5px;color:var(--muted)">MP3, WAV, M4A, OGG o WEBM · massimo 10 MB.</div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn primary" data-action="analizza">Analizza con l'AI ${icon('sparkles',14)}</button>
@@ -188,9 +218,9 @@ function renderNuova(){
 function renderAnalisi(res){
   const chips=res.comp.map(c=>{
     const eu=EU.find(x=>x.id===c.id);
-    return '<span class="chip" style="background:'+eu.color+'1f;color:'+eu.color+';padding:6px 12px;font-size:12px">'+eu.short+' · '+Math.round(c.p*100)+'%</span>';
+    return '<span class="chip" style="background:'+eu.color+'1f;color:var(--text2);padding:6px 12px;font-size:12px">'+eu.short+' · '+Math.round(c.p*100)+'%</span>';
   }).join('');
-  const dimchips=res.dims.map(id=>{const d=DIMS.find(x=>x.id===id);return '<span class="chip" style="background:'+d.color+'1f;color:'+d.color+';padding:6px 12px;font-size:12px">'+d.nome+'</span>';}).join('');
+  const dimchips=res.dims.map(id=>{const d=DIMS.find(x=>x.id===id);return '<span class="chip" style="background:'+d.color+'1f;color:var(--text2);padding:6px 12px;font-size:12px">'+d.nome+'</span>';}).join('');
   const seg=res.segnali.map(s=>'<span class="chip">'+s+'</span>').join('');
   return `
   <div style="background:linear-gradient(135deg,var(--accent-soft),var(--surface2));border:1px solid var(--line-soft);border-radius:14px;padding:16px;margin-bottom:14px">
@@ -198,9 +228,9 @@ function renderAnalisi(res){
       ${icon('sparkles',16)}<strong style="color:var(--accent)">Connessione trovata</strong>
       <span class="conf" style="margin-left:auto">confidenza ${res.conf}</span>
     </div>
-    <div style="font-size:11.5px;color:#6b7280;margin-bottom:6px">Dimensioni del tuo stile:</div>
+    <div style="font-size:11.5px;color:var(--text2);margin-bottom:6px">Dimensioni del tuo stile:</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${dimchips}</div>
-    <div style="font-size:11.5px;color:#6b7280;margin-bottom:6px">Competenze chiave:</div>
+    <div style="font-size:11.5px;color:var(--text2);margin-bottom:6px">Competenze chiave:</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">${chips}</div>
     <p style="font-size:12.5px;color:var(--text);line-height:1.55"><strong>${res.corretta?'Competenze':'Perché'}:</strong> ${res.perche}.</p>
     ${seg?`<div style="margin-top:10px;font-size:11.5px;color:var(--muted)">Segnali rilevati: ${seg}</div>`:''}
@@ -229,7 +259,7 @@ function renderOrientamento(){
    {t:'Prova un laboratorio di teatro o una mostra fotografica',why:'Un\'area che non hai ancora esplorato molto',comp:['cultura'],ambito:'extra'},
    {t:'Scrivi qualche riga su un libro che ti ha cambiato qualcosa',why:'Per raccontare qualcosa di più personale',comp:['alfabetica'],ambito:'extra'}
   ];
-  const chip=id=>{const c=EU.find(x=>x.id===id);return '<span class="chip" style="background:'+c.color+'1f;color:'+c.color+'">'+c.short+'</span>';};
+  const chip=id=>{const c=EU.find(x=>x.id===id);return '<span class="chip" style="background:'+c.color+'1f;color:var(--text2)">'+c.short+'</span>';};
   return `
   <div class="hero">
     <div>
@@ -246,8 +276,8 @@ function renderOrientamento(){
     ${dirs.map(d=>`
       <div class="card" style="display:flex;flex-direction:column">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <span class="chip" style="background:${d.col}1f;color:${d.col}">${d.tipo}</span>
-          <span style="font-size:11.5px;color:var(--muted)">coerenza <strong style="color:${d.col}">${d.match}%</strong></span>
+          <span class="chip" style="background:${d.col}1f;color:var(--text2)">${d.tipo}</span>
+          <span style="font-size:11.5px;color:var(--muted)">coerenza <strong style="color:var(--text)">${d.match}%</strong></span>
         </div>
         <div style="font-weight:700;font-size:14px;margin-bottom:6px">${d.titolo}</div>
         <p style="font-size:12.5px;color:var(--text);line-height:1.55;margin-bottom:8px"><strong>Cos'è:</strong> ${d.cosa}</p>
@@ -282,7 +312,40 @@ function renderOrientamento(){
     </div>
   </div>`;
 }
+function capolavoro(){
+  const list=state.evidences.filter(e=>!e.docId);
+  if(!list.length) return null;
+  const starred=list.filter(e=>e.evidenza);
+  const pool=starred.length?starred:list;
+  const score=e=>(e.comp||[]).length*2 + (e.dims||[]).length + (e.conf==='alta'?2:e.conf==='media'?1:0);
+  return [...pool].sort((a,b)=>score(b)-score(a) || String(b.data||'').localeCompare(String(a.data||'')))[0];
+}
+function direzioneOrientamento(){
+  const top=topComp(2);
+  if(!top.length || !top[0].val) return {coerenza:0, testo:'Aggiungi qualche prova per ricevere una direzione di orientamento.'};
+  const weak=bottomComp(1)[0];
+  const mappa={
+    stem:'percorsi tecnici e scientifici (ITS, ingegneria, laboratori)',
+    digitale:'percorsi digitali e creativi (ITS comunicazione, design, sviluppo)',
+    personale:'percorsi che mettono al centro le persone (formazione, orientamento, lavoro di squadra)',
+    imprenditoriale:'percorsi di organizzazione e progetto (eventi, management, imprenditoria)',
+    alfabetica:'percorsi di comunicazione e scrittura (editoria, giornalismo, formazione)',
+    multilingue:'percorsi internazionali e linguistici (scambi, mediazione, turismo)',
+    cittadinanza:'percorsi civici e sociali (volontariato, servizi alla persona, terzo settore)',
+    cultura:'percorsi artistici e culturali (design, musica, teatro, patrimonio)'
+  };
+  const coerenza=Math.round((top[0].val+top[1].val)/2);
+  const nome=mappa[top[0].id]||'percorsi coerenti con le tue competenze';
+  return {coerenza, testo:`${nome}. Coerenza col profilo: ${coerenza}%. Le tue competenze più evidenti sono ${top[0].nome} e ${top[1].nome}; ${weak.val?`la meno documentata è ${weak.nome}.`:'continua a raccogliere prove.'}`};
+}
+function portfolioDate(){
+  const d=state.portfolioAt?new Date(state.portfolioAt):new Date();
+  return d.toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'})+', '+d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+}
 function renderPortfolio(){
+  const cap=capolavoro();
+  const dir=direzioneOrientamento();
+  const sig=[...state.evidences].sort((a,b)=>(b.evidenza?1:0)-(a.evidenza?1:0));
   return `
   <div class="hero no-print">
     <div>
@@ -292,7 +355,7 @@ function renderPortfolio(){
     <div class="hero-side">
       <button class="btn" data-action="rigenera">Rigenera bozza</button>
       <button class="btn" data-action="condividi">${icon('share',14)} Condividi con tutor</button>
-      <button class="btn primary" data-action="stampa">Scarica PDF ${icon('file',14)}</button>
+      <button class="btn primary" data-action="stampa">Stampa / Salva come PDF ${icon('file',14)}</button>
       <button class="btn" data-action="apriCv">${icon('file',14)} Apri il CV</button>
     </div>
   </div>
@@ -309,7 +372,7 @@ function renderPortfolio(){
       <h3>Il tuo stile: essere, fare, lavorare</h3>
       ${DIMS.map(d=>`
         <div class="bar-row" style="padding:4px 0">
-          <div class="bar-name" style="width:130px;color:${d.color}">${d.nome}</div>
+          <div class="bar-name" style="width:130px;color:var(--text2)">${d.nome}</div>
           <div class="bar-track"><div class="bar-fill" style="width:${dimScore(d.id)}%;background:${d.color}"></div></div>
           <div class="bar-val">${dimScore(d.id)}</div>
         </div>`).join('')}
@@ -325,17 +388,17 @@ function renderPortfolio(){
     </section>
     <section>
       <h3>Capolavoro</h3>
-      <p><strong>Robot per la gara regionale</strong> — progettazione e programmazione di un robot con Arduino per la competizione scolastica. Ruolo: gestione sensori e test. Dimensioni: Fare, Lavorare. Competenze: STEM, Digitale.</p>
+      ${cap?`<p><strong>${escHTML(cap.titolo)}</strong> — ${escHTML(cap.descrizione||'')}${(cap.dims||[]).length?' Dimensioni: '+cap.dims.map(id=>DIMS.find(x=>x.id===id)?.nome).filter(Boolean).join(', ')+'.':''}${(cap.comp||[]).length?' Competenze: '+cap.comp.map(id=>EU.find(x=>x.id===id)?.nome).filter(Boolean).join(', ')+'.':''}</p>`:'<p class="cv-missing">Aggiungi una prova e mettila in evidenza con ★ per generare il Capolavoro.</p>'}
     </section>
     <section>
       <h3>Esperienze significative</h3>
       <ul>
-        ${state.evidences.slice(0,5).map(e=>'<li><strong>'+e.titolo+'</strong> — '+e.descrizione.slice(0,90)+'… <em style="color:var(--label)">('+ (e.dims||[]).map(id=>DIMS.find(x=>x.id===id).nome).join(', ')+')</em></li>').join('')}
+        ${sig.slice(0,5).map(e=>'<li><strong>'+escHTML(e.titolo)+'</strong> — '+escHTML((e.descrizione||'').slice(0,90))+'… <em style="color:var(--label)">('+ (e.dims||[]).map(id=>DIMS.find(x=>x.id===id).nome).join(', ')+')</em></li>').join('') || '<li class="cv-missing">Nessuna esperienza ancora.</li>'}
       </ul>
     </section>
     <section>
       <h3>Direzione di orientamento</h3>
-      <p>ITS Informatica e Robotica (coerenza 87%). Il profilo è forte su STEM e Digitale; da rafforzare Cittadinanza e Cultura.</p>
+      <p>${escHTML(dir.testo)}</p>
     </section>
     <section>
       <h3>Cosa puoi ancora aggiungere, se vuoi</h3>
@@ -345,15 +408,15 @@ function renderPortfolio(){
       </ul>
     </section>
     <hr/>
-    <div class="muted">Bozza generata automaticamente il 10 nov 2026 · da validare con il tutor · Talent Radar</div>
+    <div class="muted">Bozza generata il ${portfolioDate()} · da validare con il tutor · Talent Radar</div>
   </div>`;
 }
 function renderPrivacy(){
   const toggles=[
-   {id:'tutor',label:'Visibilità al tutor',desc:'Il tutor vede le prove e il radar. Puoi nascondere prove singole.',val:state.privacy.tutor},
-   {id:'orientatore',label:'Condivisione con orientatore esterno',desc:'Consenso per condividere il portfolio con un centro di orientamento.',val:state.privacy.orientatore},
-   {id:'ai',label:'Uso dei dati per migliorare l\'AI',desc:'I tuoi dati (anonimizzati) aiutano a migliorare i suggerimenti.',val:state.privacy.ai},
-   {id:'export',label:'Esportazione E-Portfolio',desc:'Permetti il download del portfolio in PDF.',val:state.privacy.export}
+   {id:'tutor',label:'Visibilità al tutor',desc:'Anteprima demo: il tutor usa solo il materiale che carichi, non il profilo.',val:state.privacy.tutor},
+   {id:'orientatore',label:'Condivisione con un orientatore',desc:'Demo: nessun orientatore reale è collegato in questa versione.',val:state.privacy.orientatore},
+   {id:'ai',label:'Uso dei dati per migliorare l\'AI',desc:'Non attivo: l\'AI gira in locale, i dati non escono dal computer.',val:state.privacy.ai},
+   {id:'export',label:'Esportazione dei miei dati',desc:'Attivo davvero: se disattivato, il backup JSON viene bloccato.',val:state.privacy.export}
   ];
   return `
   <div class="hero">
@@ -373,11 +436,12 @@ function renderPrivacy(){
             <div style="font-size:11.5px;color:var(--muted);margin-top:2px">${t.desc}</div>
           </div>
           <label style="position:relative;width:42px;height:24px;flex:none">
-            <input type="checkbox" ${t.val?'checked':''} data-action="privacy" data-val="${t.id}" style="opacity:0;width:0;height:0;position:absolute"/>
+            <input type="checkbox" ${t.val?'checked':''} data-action="privacy" data-val="${t.id}" aria-label="${t.label}" style="opacity:0;width:0;height:0;position:absolute"/>
             <span style="position:absolute;inset:0;background:${t.val?'var(--accent)':'#d1d5db'};border-radius:99px;transition:.2s;cursor:pointer"></span>
             <span style="position:absolute;top:3px;left:${t.val?'21px':'3px'};width:18px;height:18px;background:#fff;border-radius:50%;transition:.2s"></span>
           </label>
         </div>`).join('')}
+      <p style="font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.5">In questa demo solo l'esportazione ha un effetto reale: le altre voci sono anteprime dichiarate.</p>
     </div>
     <div>
       <div class="card" style="margin-bottom:16px">
@@ -394,7 +458,7 @@ function renderPrivacy(){
         <p style="font-size:12.5px;color:var(--text2);line-height:1.55">Puoi esportare o cancellare tutte le tue prove in qualsiasi momento. Il tutor vede solo ciò che hai autorizzato.</p>
         <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
           <button class="btn soft sm" data-action="exportData">Esporta dati</button>
-          <button class="btn sm" style="color:var(--rose);border-color:#fecaca" data-action="deleteData">Cancella tutto</button>
+          <button class="btn sm" style="color:var(--rose-text);border-color:#fecaca" data-action="deleteData">Cancella tutto</button>
         </div>
       </div>
     </div>

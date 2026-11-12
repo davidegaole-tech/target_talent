@@ -72,7 +72,7 @@ function renderNoteList(){
       </div>`:'<p style="font-size:11.5px;color:var(--muted);margin-top:10px">Da questo file non si riesce a leggere il testo (forse è una scansione).</p>'}
       <div style="display:flex;gap:6px;margin-top:10px">
         <a class="btn sm" href="/api/documents/${n.id}/file" target="_blank" rel="noopener">Apri</a>
-        <button class="btn sm ${NOTES.armed===n.id?'danger-armed':''}" style="margin-left:auto;color:${NOTES.armed===n.id?'#fff':'var(--rose)'}" data-action="noteDel" data-id="${n.id}">${NOTES.armed===n.id?'Conferma eliminazione':'Elimina'}</button>
+        <button class="btn sm ${NOTES.armed===n.id?'danger-armed':''}" style="margin-left:auto;color:${NOTES.armed===n.id?'#fff':'var(--rose-text)'}" data-action="noteDel" data-id="${n.id}">${NOTES.armed===n.id?'Conferma eliminazione':'Elimina'}</button>
       </div>
     </div>`).join('')}</div>`;
 }

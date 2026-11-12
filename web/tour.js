@@ -16,8 +16,6 @@ const TOUR_ALL_STEPS=[
    text:'Le tue materie e i voti, con un grafico dell\'andamento per ognuna.'},
   {target:'.nav-item[data-route="portfolio"]',title:'CV e portfolio',
    text:'Il CV e l\'E-Portfolio si compilano da soli con il profilo, le esperienze e i certificati.'},
-  {target:'.nav-item[data-route="social"]',title:'Amici',
-   text:'Trova altre persone con interessi simili e chatta.'},
   {target:'.profilebtn',title:'Il tuo profilo',
    text:'Qui modifichi i tuoi dati, le <strong>impostazioni</strong> (ruolo, tema, testo grande) e la privacy. Da qui puoi anche uscire.'},
   {target:'.mascot-panda',title:'Sergio, il tuo tutor',

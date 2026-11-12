@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Database · Talent Radar</title>
+<style>
+  :root{
+    --bg:#f5f6fa; --surface:#fff; --surface2:#f6f7fb; --ink:#0f172a; --text:#374151;
+    --muted:#6b7280; --line:#e6e8ef; --accent:#4f46e5; --accent-soft:#eef0ff;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#0b1220;--surface:#111a2c;--surface2:#16223a;--ink:#e7ecf5;--text:#cbd5e1;--muted:#8b97ad;--line:#24304a;--accent:#818cf8;--accent-soft:#2a3160}
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink)}
+  a{color:var(--accent);text-decoration:none}
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 22px;border-bottom:1px solid var(--line);background:var(--surface);position:sticky;top:0;z-index:10}
+  header h1{font-size:16px;margin:0;letter-spacing:-.2px}
+  header .sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .layout{display:flex;gap:18px;padding:18px 22px;align-items:flex-start}
+  aside{flex:0 0 240px;position:sticky;top:74px}
+  .tl{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:0 0 8px}
+  .tbtn{display:flex;justify-content:space-between;gap:8px;width:100%;text-align:left;padding:9px 11px;border:1px solid transparent;border-radius:9px;background:none;color:var(--text);font:inherit;font-size:13px;cursor:pointer}
+  .tbtn:hover{background:var(--surface2)}
+  .tbtn.on{background:var(--accent-soft);color:var(--accent);font-weight:700}
+  .tbtn .n{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .tbtn.on .n{color:var(--accent)}
+  main{flex:1;min-width:0}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 28px rgba(15,23,42,.05);overflow:hidden}
+  .head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .title{font-weight:700;font-size:14px}
+  .meta{font-size:11.5px;color:var(--muted)}
+  .wrap{overflow:auto;max-height:calc(100vh - 190px)}
+  table{border-collapse:collapse;width:100%;font-size:12px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+  th,td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;white-space:nowrap;max-width:340px;overflow:hidden;text-overflow:ellipsis}
+  th{position:sticky;top:0;background:var(--surface2);color:var(--muted);font-weight:700;z-index:1}
+  td{color:var(--text)}
+  tr:hover td{background:var(--surface2)}
+  .empty{padding:36px;text-align:center;color:var(--muted);font-size:13px}
+  .err{color:#b91c1c}
+  .badge{display:inline-block;padding:2px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent);font-size:10.5px;font-weight:700}
+  @media(max-width:800px){.layout{flex-direction:column}aside{position:static;flex:none;width:100%}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Database · Talent Radar</h1>
+    <div class="sub">Anteprima in sola lettura · dati locali</div>
+  </div>
+  <a href="/">← Torna all'app</a>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="tl">Tabelle</div>
+    <div id="tables"><div class="empty">Carico…</div></div>
+  </aside>
+  <main>
+    <div class="card">
+      <div class="head">
+        <div>
+          <div class="title" id="title">Seleziona una tabella</div>
+          <div class="meta" id="meta"></div>
+        </div>
+        <span class="badge" id="badge"></span>
+      </div>
+      <div class="wrap">
+        <table id="rows"></table>
+      </div>
+      <div class="empty" id="empty" hidden></div>
+    </div>
+  </main>
+</div>
+
+<script>
+const TOKEN = (() => { try { return localStorage.getItem('talent_token'); } catch (e) { return null; } })();
+const $ = (id) => document.getElementById(id);
+let current = null;
+
+function esc(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+async function api(path) {
+  const r = await fetch(path, { headers: TOKEN ? { Authorization: 'Bearer ' + TOKEN } : {} });
+  if (r.status === 401) throw new Error('auth');
+  if (!r.ok) throw new Error('http');
+  return r.json();
+}
+
+function showEmpty(text, isError) {
+  $('rows').innerHTML = '';
+  const el = $('empty');
+  el.hidden = false;
+  el.className = 'empty' + (isError ? ' err' : '');
+  el.textContent = text;
+}
+
+async function loadTables() {
+  try {
+    const data = await api('/api/admin/db/tables');
+    $('tables').innerHTML = data.tables.map((t) =>
+      `<button class="tbtn" data-table="${esc(t.name)}"><span>${esc(t.name)}</span><span class="n">${t.rows}</span></button>`
+    ).join('');
+    document.querySelectorAll('.tbtn').forEach((b) => {
+      b.addEventListener('click', () => loadTable(b.dataset.table));
+    });
+  } catch (e) {
+    if (e.message === 'auth') {
+      $('tables').innerHTML = '<div class="empty">Accedi prima <a href="/">dall’app</a>.</div>';
+    } else {
+      $('tables').innerHTML = '<div class="empty err">Errore nel caricamento.</div>';
+    }
+  }
+}
+
+async function loadTable(name) {
+  current = name;
+  document.querySelectorAll('.tbtn').forEach((b) => b.classList.toggle('on', b.dataset.table === name));
+  $('title').textContent = name;
+  $('meta').textContent = 'Carico…';
+  $('badge').textContent = '';
+  try {
+    const data = await api('/api/admin/db/tables/' + encodeURIComponent(name) + '?limit=100');
+    $('meta').textContent = `${data.rows.length} righe mostrate (max ${data.limit}) · ${data.columns.length} colonne`;
+    $('badge').textContent = 'read-only';
+    if (!data.rows.length) {
+      showEmpty('Tabella vuota.');
+      return;
+    }
+    $('empty').hidden = true;
+    const head = data.columns.map((c) => `<th>${esc(c)}</th>`).join('');
+    const body = data.rows.map((row) =>
+      '<tr>' + data.columns.map((c) => {
+        const v = row[c];
+        const text = v === null ? '—' : (typeof v === 'object' ? JSON.stringify(v) : v);
+        return `<td title="${esc(text)}">${esc(text)}</td>`;
+      }).join('') + '</tr>'
+    ).join('');
+    $('rows').innerHTML = `<thead><tr>${head}</tr></thead><tbody>${body}</tbody>`;
+  } catch (e) {
+    showEmpty(e.message === 'auth' ? 'Sessione scaduta: torna all’app e accedi.' : 'Errore nel caricamento della tabella.');
+  }
+}
+
+if (!TOKEN) {
+  $('tables').innerHTML = '<div class="empty">Accedi prima <a href="/">dall’app</a>.</div>';
+} else {
+  loadTables();
+}
+</script>
+</body>
+</html>
