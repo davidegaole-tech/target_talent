@@ -85,7 +85,7 @@ DEMO_STATE: dict[str, Any] = {
         "digitali": "Arduino, Python di base, Photoshop, Audacity",
         "interessi": "Robotica, fotografia, podcast", "sport": "Pallavolo",
     },
-    "privacy": {"tutor": True, "orientatore": False, "ai": False, "export": True},
+    "privacy": {"tutor": True, "orientatore": False, "export": True},
     "theme": "light",
     "textSize": "normale",
     "streak": 5,

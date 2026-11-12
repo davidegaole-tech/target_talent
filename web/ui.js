@@ -125,10 +125,24 @@ function renderShell(){
   $('topbar').innerHTML=topbarHTML();
   renderMascot();
 }
+/* La nuvoletta di Sergio resta 10 secondi dalla prima comparsa, poi sparisce fino al prossimo caricamento. */
+const MASCOT_BUBBLE_MS=10000;
+let mascotBubbleUntil=null;
 function renderMascot(){
   let m=$('mascot');
   if(!m){ m=document.createElement('div'); m.id='mascot'; m.className='mascot'; document.body.appendChild(m); }
+  // Il conto parte solo quando Sergio si vede davvero (dopo il login, non dietro la schermata di accesso)
+  let logged=false; try{ logged=!!localStorage.getItem('talent_token'); }catch(e){}
+  if(mascotBubbleUntil===null && logged && !document.body.classList.contains('gate-on')){
+    mascotBubbleUntil=Date.now()+MASCOT_BUBBLE_MS;
+    setTimeout(()=>{
+      const b=document.querySelector('#mascot .mascot-bubble'); if(!b) return;
+      b.classList.add('mascot-bubble-out');
+      setTimeout(()=>b.remove(),400);
+    },MASCOT_BUBBLE_MS);
+  }
+  const showBubble=mascotBubbleUntil===null||Date.now()<mascotBubbleUntil;
   const tips=[state.dailyTip,'Ciao! Sono Sergio: se hai un dubbio, cliccami.','Hai fatto qualcosa di bello ultimamente? Puoi raccontarlo qui.','Anche un hobby racconta chi sei.'];
   const tip=tips[Math.floor(Math.random()*tips.length)];
-  m.innerHTML='<div class="mascot-bubble">'+tip+'</div><button class="mascot-panda" title="Parla con Sergio" aria-label="Parla con Sergio" onclick="toggleTutor()"><img src="img/sergio.png" alt="" width="64" height="64"/></button>';
+  m.innerHTML=(showBubble?'<div class="mascot-bubble">'+tip+'</div>':'')+'<button class="mascot-panda" title="Parla con Sergio" aria-label="Parla con Sergio" onclick="toggleTutor()"><img src="img/sergio.png" alt="" width="64" height="64"/></button>';
 }

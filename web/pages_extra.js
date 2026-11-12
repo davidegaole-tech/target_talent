@@ -343,14 +343,6 @@ function renderSettings(){
     <span class="theme-name">${l}</span>
     <span class="theme-check">${icon('check',14)}</span>
   </button>`;
-  const sw=(id,label,desc)=>`
-    <div class="switch-row">
-      <div class="switch-text"><span class="switch-label">${label}</span><span class="switch-desc">${desc}</span></div>
-      <label class="switch">
-        <input type="checkbox" ${state.privacy[id]?'checked':''} data-action="privacy" data-val="${id}" aria-label="${label}"/>
-        <span class="switch-track"><span class="switch-dot"></span></span>
-      </label>
-    </div>`;
   return `
   <div class="settings">
     <div class="set-head">
@@ -374,11 +366,6 @@ function renderSettings(){
       <div class="set-label">Dimensione testo</div>
       <div class="set-hint">Più grande per leggere meglio, senza cambiare il layout.</div>
       <div class="seg">${size('normale','Normale')}${size('grande','Grande')}</div>
-    </div>
-    <div class="set-group">
-      <div class="set-label">Intelligenza artificiale</div>
-      <div class="set-hint">Sergio e l'analisi automatica girano su questo computer: decidi tu cosa possono usare.</div>
-      ${sw('ai','Migliorare l\'AI con i miei dati','Disattivato: i dati non escono dal computer.')}
     </div>
     <div class="set-foot">
       <button class="btn primary" data-action="closeModal">Fatto</button>

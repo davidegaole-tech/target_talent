@@ -486,8 +486,8 @@ function contestoProfilo(){
 }
 function chiediASergio(domanda){
   if(!window.askSergio){ toast('Sergio non è disponibile: avvia l\'app con lo script nella cartella scripts'); return; }
-  // I dati del profilo vanno al tutor solo se l'utente ha dato il permesso.
-  window.askSergio(domanda, state.privacy.ai ? contestoProfilo() : null);
+  // Il profilo serve a personalizzare la risposta; Sergio gira in locale, quindi non esce dal computer.
+  window.askSergio(domanda, contestoProfilo());
 }
 
 /* Il modale delle impostazioni è statico: dopo ogni scelta lo ridisegno, così il pulsante selezionato cambia. */

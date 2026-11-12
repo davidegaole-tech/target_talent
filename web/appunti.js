@@ -6,6 +6,7 @@ async function loadNotes(force){
   NOTES.loading=true;
   try{
     const r=await fetch('/api/documents?kind=appunti',{headers:authHeaders()});
+    if(r.status===401){ NOTES.loading=false; return; }
     if(!r.ok) throw new Error();
     NOTES.items=(await r.json()).documents; NOTES.offline=false;
   }catch(e){ NOTES.offline=true; }

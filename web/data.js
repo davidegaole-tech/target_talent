@@ -106,7 +106,7 @@ const state = {
    {id:'p1',tipo:'attivita',titolo:'Corso di primo soccorso con la Croce Rossa',note:'Tre incontri il sabato mattina',data:'2026-12-05',comp:['cittadinanza','personale'],perche:'impegno verso gli altri e responsabilità',fonte:'esempio',fatto:false},
    {id:'p2',tipo:'obiettivo',titolo:'Certificazione Cambridge C1',note:'Preparare reading e writing',data:'2027-05-30',comp:['multilingue'],perche:'uso di una lingua straniera a livello avanzato',fonte:'esempio',fatto:false}
   ],
-  privacy:{tutor:true,orientatore:false,ai:false,export:true},
+  privacy:{tutor:true,orientatore:false,export:true},
   diarioFilter:null,
   radarValues:null,
   justAdded:false,

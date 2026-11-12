@@ -795,3 +795,5 @@ body.gate-on .mascot,body.gate-on .tt-panel{display:none!important}
   .save-status{display:none}
   .avatar{width:30px;height:30px}
 }
+.mascot-bubble.mascot-bubble-out{opacity:0;transform:translateY(6px);transition:opacity .35s ease,transform .35s ease}
+@media(prefers-reduced-motion:reduce){.mascot-bubble.mascot-bubble-out{transition:none}}

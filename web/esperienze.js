@@ -7,6 +7,8 @@ async function loadDocs(force){
   DOCS.loading=true;
   try{
     const r=await fetch('/api/documents',{headers:authHeaders()});
+    // Non ancora autenticato (pagina aperta prima del login): riprova alla prossima visualizzazione
+    if(r.status===401){ DOCS.loading=false; return; }
     if(!r.ok) throw new Error();
     DOCS.items=(await r.json()).documents.filter(d=>d.kind!=='appunti'); DOCS.offline=false;
   }catch(e){ DOCS.offline=true; }

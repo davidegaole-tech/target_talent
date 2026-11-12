@@ -14,8 +14,8 @@ const TOUR_ALL_STEPS=[
    text:'Carica appunti e chiedi a Sergio riassunti, quiz e flashcard. Qui sotto trovi anche le materie con medie e andamento.'},
   {target:'.nav-item[data-route="portfolio"]',title:'CV e portfolio',
    text:'Si compila da solo con le tue prove: scegli le attività e scarica il CV in PDF, nel formato europeo.'},
-  {target:'.switch-row',openSettings:true,title:'Le impostazioni',
-   text:'Tema, testo grande e il permesso per <strong>migliorare l\'AI con i tuoi dati</strong>. Resta tutto sul tuo computer.'},
+  {target:'.theme-grid',openSettings:true,title:'Le impostazioni',
+   text:'Scegli il ruolo, il tema chiaro o scuro e la dimensione del testo. Le modifiche si applicano subito.'},
   {title:'Adesso tocca a te',center:true,last:true,
    text:'Aggiungi la prima attività: un progetto, uno sport, un volontariato. Bastano trenta secondi e il passaporto inizia a prendere forma.'}
 ];
